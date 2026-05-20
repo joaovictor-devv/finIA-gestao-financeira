@@ -1,53 +1,58 @@
-# Banco Java (Mini Sistema Bancário)
+# FinIA
 
-Mini sistema bancário desenvolvido em Java utilizando JDBC e MySQL, seguindo o modelo de ledger (saldo calculado a partir do histórico de transações).
+Sistema de gestão financeira desenvolvido com Java e Spring Boot, focado em controle de gastos, organização financeira, metas e análises inteligentes.
+
+## Sobre o projeto
+
+O FinIA foi criado com o objetivo de auxiliar usuários no gerenciamento financeiro pessoal através de uma API REST moderna e organizada em camadas.
+
+O sistema permite observar transações financeiras, acompanhar saldo, criar metas e gerar análises sobre os hábitos financeiros do usuário.
 
 ## Funcionalidades
 
-- Depósito de valores  
-- Saque com validação de saldo insuficiente  
-- Cálculo de saldo por histórico  
-- Extrato de transações  
-- Interface gráfica em Swing  
-- Persistência com MySQL + JDBC  
+- Cadastro de receitas e despesas
+- Controle de saldo financeiro
+- Histórico de transações
+- Criação e gerenciamento de metas financeiras
+- Análises financeiras
+- Organização por categorias
+- Validações de regras financeiras
+- API REST estruturada
+- Tratamento global de exceções
+- Integração com banco de dados MySQL
 
 ## Arquitetura
 
-O sistema utiliza o modelo contábil:
+O projeto segue arquitetura em camadas:
 
-saldo = depósitos − saques
+- Controllers
+- Services
+- Repositories
+- DTOs
+- Models
+- Configurações globais
 
-O saldo não é armazenado, sendo sempre calculado a partir do histórico.
+A aplicação utiliza separação de responsabilidades para facilitar manutenção, escalabilidade e evolução futura.
 
-## Tecnologias
+## Tecnologias utilizadas
 
-- Java 21+  
-- Maven  
-- MySQL  
-- JDBC  
-- Swing  
+- Java 21
+- Spring Boot 3
+- Maven
+- MySQL
+- JDBC
+- REST API
+- BigDecimal para operações financeiras
 
-## Configuração do banco
+## Estrutura do projeto
 
-Por padrão o sistema usa:
-
-- host: localhost  
-- banco: banco_app  
-- usuário: root  
-- senha: root  
-
-Opcionalmente, é possível sobrescrever via variáveis de ambiente:
-
-```bash
-DB_USER=seu_usuario
-DB_PASSWORD=sua_senha
-```
-
-## Como executar a interface
-
-```bash
-mvn clean compile
-mvn exec:java -Dexec.mainClass=com.joaovictor.BancoUI
-```
-
-Projeto em evolução.
+```txt
+src/main/java
+├── controller
+├── service
+├── repository
+├── dto
+├── model
+├── config
+├── exception
+└── util
