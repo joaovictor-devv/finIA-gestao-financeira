@@ -15,6 +15,8 @@ const formularioInicial = {
 };
 
 function Metas() {
+  const [editandoId, setEditandoId] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
   const [metas, setMetas] = useState([]);
   const [form, setForm] = useState(formularioInicial);
   const [analise, setAnalise] = useState(null);
@@ -59,6 +61,22 @@ function Metas() {
     setSucesso("");
   }
 
+  function editar(meta) {
+    setEditandoId(meta.id);
+    setForm({ ...meta, descricao: meta.descricao || "" });
+    setAnalise(null);
+    setErro("");
+    setSucesso("");
+    document.getElementById("form-meta")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setForm(formularioInicial);
+    setAnalise(null);
+    setErro("");
+  }
+
   function payload() {
     return {
       nome: form.nome.trim(),
@@ -77,7 +95,7 @@ function Metas() {
     setSimulando(true);
 
     try {
-      const response = await api.post("/analise/simular-meta", payload());
+      const response = await api.post(editandoId ? `/metas/${editandoId}/simular` : "/analise/simular-meta", payload());
       setAnalise(response.data);
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Confira os dados da meta e tente novamente.");
@@ -94,10 +112,12 @@ function Metas() {
     setCriando(true);
 
     try {
-      await api.post("/metas", payload());
+      if (editandoId) await api.put(`/metas/${editandoId}`, payload());
+      else await api.post("/metas", payload());
+      setEditandoId(null);
       setForm(formularioInicial);
       setAnalise(null);
-      setSucesso("Meta criada. O FinIA já passou a considerar esse valor nos seus cálculos.");
+      setSucesso(editandoId ? "Meta atualizada e reanalisada." : "Meta criada. O FinIA já passou a considerar esse valor nos seus cálculos.");
       await recarregarMetas();
     } catch (error) {
       if (error.response?.status === 422 && error.response?.data?.analise) {
@@ -110,6 +130,14 @@ function Metas() {
   }
 
   async function salvarProgresso(id) {
+    const valor = Number(valorProgresso);
+    const meta = metas.find((item) => item.meta.id === id)?.meta;
+    if (valorProgresso.trim() === "" || !Number.isFinite(valor) || valor < 0 || valor > Number(meta?.valorAlvo) || Math.abs(valor * 100 - Math.round(valor * 100)) > 0.0001) {
+      setErro("Informe um valor entre zero e o valor alvo, com até duas casas decimais.");
+      return;
+    }
+    setOcupado(true);
+    setAnalise(null);
     setErro("");
     setSucesso("");
     try {
@@ -120,19 +148,26 @@ function Metas() {
       await recarregarMetas();
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível atualizar o progresso.");
+    } finally {
+      setOcupado(false);
     }
   }
 
   async function excluir(id) {
     if (!window.confirm("Excluir esta meta?")) return;
+    setOcupado(true);
+    setAnalise(null);
     setErro("");
     setSucesso("");
     try {
       await api.delete(`/metas/${id}`);
+      if (id === editandoId) cancelarEdicao();
       setSucesso("Meta excluída.");
       await recarregarMetas();
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível excluir a meta.");
+    } finally {
+      setOcupado(false);
     }
   }
 
@@ -147,6 +182,7 @@ function Metas() {
       {erro && <Feedback tipo="erro">{erro}</Feedback>}
       {sucesso && <Feedback>{sucesso}</Feedback>}
 
+      <fieldset disabled={ocupado || criando || simulando}>
       <section>
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -174,6 +210,7 @@ function Metas() {
               <MetaCard
                 key={item.meta.id}
                 item={item}
+                onEditar={() => editar(item.meta)}
                 editando={editandoProgresso === item.meta.id}
                 valorProgresso={valorProgresso}
                 onAbrirProgresso={() => {
@@ -191,14 +228,14 @@ function Metas() {
       </section>
 
       <section className="mt-10 grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-        <form onSubmit={simular} className="finia-card p-6 sm:p-8">
+        <form id="form-meta" onSubmit={simular} className="finia-card p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
               <span className="material-symbols-outlined">add_task</span>
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-[#0A192F]">Testar uma nova meta</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">Primeiro veja se cabe. Depois você decide se quer criar.</p>
+              <h2 className="text-xl font-extrabold text-[#0A192F]">{editandoId ? "Editar meta" : "Testar uma nova meta"}</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">{editandoId ? "Confira as alterações antes de salvar. A meta atual permanece intacta até a confirmação." : "Primeiro veja se cabe. Depois você decide se quer criar."}</p>
             </div>
           </div>
 
@@ -278,6 +315,7 @@ function Metas() {
           >
             {simulando ? "Calculando..." : "Ver se essa meta cabe"}
           </button>
+          {editandoId && <button type="button" onClick={cancelarEdicao} className="finia-button-secondary mt-3 px-5 py-3">Cancelar edição</button>}
         </form>
 
         <section className="finia-card p-6 sm:p-8">
@@ -289,19 +327,20 @@ function Metas() {
               <p className="mt-1 text-sm leading-6 text-slate-500">O cálculo considera seu orçamento e todas as metas já cadastradas.</p>
             </div>
           ) : (
-            <ResultadoMeta analise={analise} criando={criando} onCriar={criar} />
+            <ResultadoMeta editando={Boolean(editandoId)} analise={analise} criando={criando} onCriar={criar} />
           )}
         </section>
       </section>
+      </fieldset>
     </main>
   );
 }
 
-function MetaCard({ item, editando, valorProgresso, onAbrirProgresso, onCancelarProgresso, onChangeProgresso, onSalvarProgresso, onExcluir }) {
+function MetaCard({ item, onEditar, editando, valorProgresso, onAbrirProgresso, onCancelarProgresso, onChangeProgresso, onSalvarProgresso, onExcluir }) {
   const { meta, analise } = item;
   const percentual = Math.min(
     100,
-    Math.max(0, (Number(meta.valorInicial || 0) / Math.max(1, Number(meta.valorAlvo || 1))) * 100),
+    Math.max(0, (Number(meta.valorInicial || 0) / Number(meta.valorAlvo || 1)) * 100),
   );
 
   return (
@@ -341,6 +380,8 @@ function MetaCard({ item, editando, valorProgresso, onAbrirProgresso, onCancelar
         <MiniInfo label="Precisa guardar por mês" valor={formatarMoeda(analise.valorMensalNecessario)} />
       </div>
 
+      {meta.descricao && <p className="mt-4 text-sm text-slate-600">{meta.descricao}</p>}
+      <button type="button" onClick={onEditar} className="finia-button-secondary mt-5 mr-3 px-4 py-2.5 text-sm">Editar meta</button>
       {editando ? (
         <div className="mt-5 rounded-xl bg-slate-50 p-4">
           <label className="text-sm font-bold text-[#0A192F]">Quanto já está guardado agora?</label>
@@ -349,6 +390,8 @@ function MetaCard({ item, editando, valorProgresso, onAbrirProgresso, onCancelar
               type="number"
               min="0"
               step="0.01"
+              aria-label="Valor já guardado"
+              max={meta.valorAlvo}
               value={valorProgresso}
               onChange={(event) => onChangeProgresso(event.target.value)}
               className="finia-input h-11 min-w-0 flex-1 px-3"
@@ -364,7 +407,7 @@ function MetaCard({ item, editando, valorProgresso, onAbrirProgresso, onCancelar
   );
 }
 
-function ResultadoMeta({ analise, criando, onCriar }) {
+function ResultadoMeta({ editando, analise, criando, onCriar }) {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between gap-3">
@@ -390,7 +433,7 @@ function ResultadoMeta({ analise, criando, onCriar }) {
             Ela usará {formatarPercentual(analise.percentualMargemComprometida)} do que está disponível para uma nova meta.
           </p>
           <button type="button" onClick={onCriar} disabled={criando} className="finia-button-primary mt-5 w-full px-5 py-3">
-            {criando ? "Criando..." : "Criar esta meta"}
+            {criando ? "Salvando..." : editando ? "Salvar alterações" : "Criar esta meta"}
           </button>
         </div>
       ) : (
@@ -402,7 +445,7 @@ function ResultadoMeta({ analise, criando, onCriar }) {
           {analise.prazoMinimoViavelMeses && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <MiniInfo label="Prazo mínimo" valor={`${analise.prazoMinimoViavelMeses} meses`} />
-              <MiniInfo label="Prazo mais confortável" valor={`${analise.prazoConfortavelMeses} meses`} destaque />
+              {analise.prazoConfortavelMeses != null && <MiniInfo label="Prazo mais confortável" valor={`${analise.prazoConfortavelMeses} meses`} destaque />}
             </div>
           )}
           <p className="mt-4 text-xs font-semibold leading-5 text-red-700">A meta não será salva enquanto estiver inviável.</p>
@@ -425,7 +468,7 @@ function Feedback({ children, tipo }) {
   const classes = tipo === "erro"
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
+  return <div role={tipo === "erro" ? "alert" : "status"} className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
 }
 
 function rotuloPrioridade(prioridade) {

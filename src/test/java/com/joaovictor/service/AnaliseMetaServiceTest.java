@@ -85,6 +85,15 @@ class AnaliseMetaServiceTest {
         assertThat(resultado.getMensagem()).contains("outras metas");
     }
 
+    @Test
+    void naoSugerePrazoForaDoLimiteNemSofreOverflow() {
+        AnaliseMeta resultado = service.analisar(meta("Casa", "9999999999.99", "0", 600),
+                situacaoComMargem("0.01"), BigDecimal.ZERO);
+        assertThat(resultado.isViavel()).isFalse();
+        assertThat(resultado.getPrazoMinimoViavelMeses()).isNull();
+        assertThat(resultado.getPrazoConfortavelMeses()).isNull();
+    }
+
     private SituacaoFinanceira situacaoComMargem(String margemAntesMetas) {
         BigDecimal margem = dinheiro(margemAntesMetas);
         return new SituacaoFinanceira(

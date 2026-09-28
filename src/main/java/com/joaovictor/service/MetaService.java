@@ -78,6 +78,7 @@ public class MetaService {
     }
 
     public Meta atualizarProgresso(long id, BigDecimal valorAtual) {
+        ValoresMonetarios.validar(valorAtual);
         Meta meta = buscarPorId(id);
 
         if (valorAtual == null || valorAtual.compareTo(BigDecimal.ZERO) < 0) {
@@ -139,6 +140,9 @@ public class MetaService {
         if (nome.trim().length() > 100) {
             throw new IllegalArgumentException("O nome da meta deve ter no máximo 100 caracteres.");
         }
+
+        ValoresMonetarios.validar(valorAlvo);
+        ValoresMonetarios.validar(valorInicial);
 
         if (valorAlvo == null || valorAlvo.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O valor alvo deve ser maior que zero.");

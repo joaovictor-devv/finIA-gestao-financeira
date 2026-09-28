@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
@@ -16,6 +17,7 @@ const cenarios = [
 ];
 
 function Simulacoes() {
+  const [eventos, setEventos] = useState([]);
   const [capacidade, setCapacidade] = useState(null);
   const [metas, setMetas] = useState([]);
   const [cenario, setCenario] = useState("normal");
@@ -61,7 +63,15 @@ function Simulacoes() {
 
   const cenarioAtual = useMemo(() => cenarios.find((item) => item.id === cenario), [cenario]);
 
+  function limparResultado() {
+    setResultado(null);
+    setUltimoPayload(null);
+    setExplicacaoIA("");
+    setErro("");
+  }
+
   function selecionarCenario(novoCenario) {
+    setEventos([]);
     setCenario(novoCenario);
     setResultado(null);
     setUltimoPayload(null);
@@ -108,6 +118,7 @@ function Simulacoes() {
     if (cenario === "personalizado") {
       payload.rendaMensal = numero(rendaPersonalizada);
       payload.gastosMensais = numero(gastosPersonalizados);
+      payload.eventos = eventos.map(({ mes, tipo, valor, metaId }) => ({ mes: Number(mes), tipo, valor: Number(valor), ...(metaId ? { metaId: Number(metaId) } : {}) }));
     }
 
     return payload;
@@ -135,13 +146,16 @@ function Simulacoes() {
       return "Crie uma meta antes de testar um valor extra para ela.";
     }
 
+    if (cenario === "personalizado" && eventos.some((e) => !e.valor.trim() || !Number.isInteger(Number(e.mes)) || Number(e.mes) < 1 || Number(e.mes) > meses)) {
+      return "Preencha o valor de cada evento e escolha um mês dentro do período simulado.";
+    }
     return "";
   }
 
   async function simular(event) {
     event.preventDefault();
     setErro("");
-    setExplicacaoIA("");
+    limparResultado();
 
     const problema = validarCenario();
     if (problema) {
@@ -169,7 +183,7 @@ function Simulacoes() {
     try {
       const status = await api.get("/ia/status");
       if (!status.data.configurada) {
-        setErro("A FinIA ainda não está configurada com a chave da OpenAI neste computador.");
+        setErro("As explicações por IA ainda não estão disponíveis. Você pode consultar os resultados calculados abaixo.");
         return;
       }
       const response = await api.post("/ia/explicar-simulacao", ultimoPayload);
@@ -205,7 +219,7 @@ function Simulacoes() {
         </div>
       </div>
 
-      {erro && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
+      {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
       {capacidade && (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -225,6 +239,8 @@ function Simulacoes() {
             return (
               <button
                 key={item.id}
+                disabled={simulando || explicando}
+                aria-pressed={ativo}
                 type="button"
                 onClick={() => selecionarCenario(item.id)}
                 className={`rounded-2xl border p-5 text-left transition ${
@@ -245,7 +261,7 @@ function Simulacoes() {
       </section>
 
       <section className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <form onSubmit={simular} className="finia-card p-6 sm:p-8">
+        <form onSubmit={simular} onChange={limparResultado} className="finia-card p-6 sm:p-8"><fieldset disabled={simulando || explicando || !capacidade}>
           <h2 className="text-xl font-extrabold text-[#0A192F]">2. Informe os detalhes</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">{cenarioAtual?.descricao}</p>
 
@@ -318,6 +334,7 @@ function Simulacoes() {
               </>
             )}
 
+            {cenario === "personalizado" && <EventosCenario eventos={eventos} metas={metas} meses={meses} onChange={(novos) => { setEventos(novos); limparResultado(); }} />}
             <div>
               <span className="text-sm font-bold text-[#0A192F]">Por quanto tempo você quer olhar?</span>
               <div className="mt-2 grid grid-cols-4 gap-2">
@@ -326,6 +343,7 @@ function Simulacoes() {
                     key={opcao}
                     type="button"
                     onClick={() => {
+                      limparResultado();
                       setMeses(opcao);
                       setMesEvento((atual) => Math.min(atual, opcao));
                     }}
@@ -355,12 +373,12 @@ function Simulacoes() {
 
           <button
             type="submit"
-            disabled={simulando || (cenario === "aporte" && metas.length === 0)}
+            disabled={simulando || !capacidade || (cenario === "aporte" && metas.length === 0)}
             className="finia-button-primary mt-7 w-full px-5 py-3.5"
           >
             {simulando ? "Simulando..." : "3. Ver o que aconteceria"}
           </button>
-        </form>
+        </fieldset></form>
 
         <section className="finia-card p-6 sm:p-8">
           <h2 className="text-xl font-extrabold text-[#0A192F]">Resultado</h2>
@@ -536,8 +554,9 @@ function MiniGrafico({ dados }) {
 
   return (
     <div className="mt-6 h-48 overflow-hidden rounded-2xl bg-slate-50 p-4">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" aria-label="Gráfico de evolução do saldo">
+      <svg role="img" viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" aria-label="Gráfico de evolução do saldo">
         <line x1="0" y1="90" x2="100" y2="90" stroke="#dbe3ea" strokeWidth="0.8" />
+        {dados.length === 1 && <circle cx="50" cy="90" r="2" fill="#0E7490" />}
         <polyline points={pontos} fill="none" stroke="#0E7490" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       </svg>
     </div>

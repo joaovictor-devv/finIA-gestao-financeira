@@ -1,4 +1,4 @@
-function CurrencyInput({ label, ajuda, value, onChange, placeholder = "0,00", required = false }) {
+function CurrencyInput({ label, ajuda, value, onChange, placeholder = "0,00", required = false, disabled = false }) {
   return (
     <label className="block">
       <span className="block text-sm font-bold text-[#0A192F]">{label}</span>
@@ -10,8 +10,11 @@ function CurrencyInput({ label, ajuda, value, onChange, placeholder = "0,00", re
         <input
           type="number"
           min="0"
+          max="9999999999.99"
+          inputMode="decimal"
           step="0.01"
           required={required}
+          disabled={disabled}
           value={value}
           onChange={onChange}
           placeholder={placeholder}

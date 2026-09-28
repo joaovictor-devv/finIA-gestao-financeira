@@ -187,7 +187,8 @@ function Dashboard() {
                 <CurrencyInput
                   label="Valor da compra"
                   value={valorGasto}
-                  onChange={(event) => setValorGasto(event.target.value)}
+                  disabled={simulando}
+                onChange={(event) => { setValorGasto(event.target.value); setResultadoGasto(null); }}
                   placeholder="500,00"
                 />
                 <button
@@ -272,7 +273,7 @@ function Feedback({ children, tipo }) {
   const classes = tipo === "erro"
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
+  return <div role={tipo === "erro" ? "alert" : "status"} className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
 }
 
 function ResumoCard({ icon, titulo, valor, ajuda, destaque = false, negativo = false }) {

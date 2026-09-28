@@ -51,6 +51,14 @@ textarea:focus-visible {
 }
 
 .material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: 400;
+  font-style: normal;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
   font-size: 21px;
   line-height: 1;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
@@ -122,4 +130,12 @@ textarea:focus-visible {
 
 .finia-number {
   font-variant-numeric: tabular-nums;
+}
+
+fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+fieldset:disabled { opacity: .75; }
+button:disabled { cursor: not-allowed; }
+.finia-card { min-width: 0; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }

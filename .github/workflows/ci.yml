@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - dev/finia-desenvolvimento
+      - main
   pull_request:
     branches:
       - main
+      - dev/finia-desenvolvimento
 
 jobs:
   backend:
@@ -271,3 +273,16 @@ jobs:
 
       - name: Gerar build
         run: npm run build
+
+      - name: Instalar navegador de testes
+        run: npx playwright install --with-deps chromium --only-shell
+
+      - name: Testar jornadas desktop e mobile
+        run: npm test
+
+      - name: Guardar evidências de falhas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: frontend/test-results

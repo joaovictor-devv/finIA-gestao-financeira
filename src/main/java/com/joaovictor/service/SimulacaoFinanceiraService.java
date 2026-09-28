@@ -98,6 +98,7 @@ public class SimulacaoFinanceiraService {
         }
 
         BigDecimal valor = evento.getValor();
+        ValoresMonetarios.validar(valor);
         if (valor == null || valor.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("O valor de um evento não pode ser negativo.");
         }
@@ -116,6 +117,7 @@ public class SimulacaoFinanceiraService {
     }
 
     private void validarNaoNegativoOpcional(BigDecimal valor, String mensagem) {
+        ValoresMonetarios.validar(valor);
         if (valor != null && valor.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(mensagem);
         }

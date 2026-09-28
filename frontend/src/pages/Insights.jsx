@@ -12,6 +12,7 @@ const perguntasProntas = [
 ];
 
 function Insights() {
+  const [falhaStatus, setFalhaStatus] = useState(false);
   const [statusIA, setStatusIA] = useState(null);
   const [capacidade, setCapacidade] = useState(null);
   const [pergunta, setPergunta] = useState("");
@@ -25,7 +26,7 @@ function Insights() {
         const status = await api.get("/ia/status");
         setStatusIA(status.data);
       } catch {
-        setStatusIA({ configurada: false, mensagem: "Não foi possível verificar a configuração da IA." });
+        setFalhaStatus(true);
       }
 
       try {
@@ -53,7 +54,9 @@ function Insights() {
       const response = await api.post("/ia/perguntar", { pergunta: texto });
       setConversa((atual) => [...atual, { tipo: "finia", texto: response.data.resposta }]);
     } catch (error) {
-      setErro(error.response?.data?.mensagem || "Não foi possível falar com a FinIA agora.");
+      setErro(error.response?.data?.mensagem || "Não foi possível falar com a FinIA agora. Tente novamente.");
+      setPergunta(texto);
+      setConversa((atual) => atual.slice(0, -1));
     } finally {
       setEnviando(false);
     }
@@ -71,7 +74,7 @@ function Insights() {
         descricao="A FinIA recebe os cálculos do sistema e explica sua situação em linguagem simples."
       />
 
-      {erro && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
+      {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
       <section className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <div className="space-y-6">
@@ -122,12 +125,12 @@ function Insights() {
                 </div>
               </div>
               <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusIA?.configurada ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
-                {statusIA?.configurada ? "Pronta para conversar" : "IA ainda não configurada"}
+                {falhaStatus ? "Conexão indisponível" : !statusIA ? "Verificando..." : statusIA.configurada ? "IA configurada" : "IA não configurada"}
               </span>
             </div>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
+          <div role="log" aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
             {conversa.length === 0 ? (
               <div>
                 <div className="max-w-xl rounded-2xl rounded-tl-md bg-slate-50 p-5 text-sm leading-7 text-slate-700">
@@ -164,7 +167,7 @@ function Insights() {
 
           <form onSubmit={enviar} className="border-t border-slate-100 bg-white p-4 sm:p-5">
             {!statusIA?.configurada && (
-              <p className="mb-3 text-xs font-semibold leading-5 text-slate-500">Você poderá conversar aqui depois que a chave da OpenAI for configurada no ambiente do backend.</p>
+              <p className="mb-3 text-xs font-semibold leading-5 text-slate-500">{falhaStatus ? "Não foi possível verificar o serviço. Recarregue a página para tentar novamente." : !statusIA ? "Verificando disponibilidade..." : "As explicações por IA ainda não estão disponíveis. Os cálculos e simulações continuam funcionando."}</p>
             )}
             <div className="flex gap-2">
               <textarea
@@ -172,6 +175,8 @@ function Insights() {
                 onChange={(event) => setPergunta(event.target.value)}
                 placeholder="Ex.: Posso gastar R$ 800 agora?"
                 rows="2"
+                aria-label="Sua pergunta para a FinIA"
+                maxLength={2000}
                 className="finia-input min-h-12 flex-1 resize-none px-4 py-3"
                 disabled={!statusIA?.configurada || enviando}
               />

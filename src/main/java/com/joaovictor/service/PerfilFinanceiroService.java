@@ -114,6 +114,7 @@ public class PerfilFinanceiroService {
     }
 
     private void validarSaldo(BigDecimal saldoAtual) {
+        ValoresMonetarios.validar(saldoAtual);
         if (saldoAtual == null || saldoAtual.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("O saldo atual é obrigatório e não pode ser negativo.");
         }

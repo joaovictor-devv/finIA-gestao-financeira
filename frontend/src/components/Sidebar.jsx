@@ -43,6 +43,7 @@ function Sidebar() {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-cyan-50 text-cyan-800"
@@ -96,6 +97,7 @@ function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
+              aria-current={active ? "page" : undefined}
               className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors ${
                 active ? "text-cyan-800" : "text-slate-500"
               }`}

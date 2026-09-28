@@ -87,7 +87,7 @@ function Perfil() {
       {sucesso && <Feedback>{sucesso}</Feedback>}
 
       <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <form onSubmit={salvar} className="finia-card p-6 sm:p-8">
+        <form onSubmit={salvar} className="finia-card p-6 sm:p-8"><fieldset disabled={salvando}>
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
               <span className="material-symbols-outlined">person</span>
@@ -123,7 +123,7 @@ function Perfil() {
           <button type="submit" disabled={salvando} className="finia-button-primary mt-8 w-full px-5 py-3.5 sm:w-auto">
             {salvando ? "Salvando..." : "Salvar alterações"}
           </button>
-        </form>
+        </fieldset></form>
 
         <div className="space-y-6">
           <section className="finia-card p-6 sm:p-8">
@@ -187,7 +187,7 @@ function Feedback({ children, tipo }) {
   const classes = tipo === "erro"
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
+  return <div role={tipo === "erro" ? "alert" : "status"} className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
 }
 
 function numero(valor) {

@@ -34,6 +34,9 @@ public class FiniaIAService {
             throw new IllegalArgumentException("A pergunta é obrigatória.");
         }
 
+        if (request.getPergunta().length() > 2000) {
+            throw new IllegalArgumentException("A pergunta deve ter no máximo 2000 caracteres.");
+        }
         RespostaIA resposta = openAIService.perguntar(request.getPergunta());
         return resposta.getResposta();
     }
