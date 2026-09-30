@@ -104,3 +104,96 @@ test('seis telas sem erros JavaScript nem rolagem horizontal', async ({ page }) 
   }
   expect(errors).toEqual([]);
 });
+
+test('oculta valores do dashboard e mantém a escolha ao recarregar', async ({ page }) => {
+  await page.goto('/');
+  const saldo = page.getByTestId('saldo-atual');
+  await expect(saldo).toContainText('1.500');
+  await expect(page.getByRole('progressbar', { name: 'Progresso da meta Notebook' })).toHaveAttribute('aria-valuenow', '33.3');
+  await page.getByRole('button', { name: 'Ocultar valores' }).click();
+  await expect(saldo).toHaveText('••••');
+  await expect(page.getByRole('progressbar')).toHaveCount(0);
+  await expect(page.locator('main')).not.toContainText('1.500');
+  await page.reload();
+  await expect(saldo).toHaveText('••••');
+  await page.getByRole('button', { name: 'Mostrar valores' }).click();
+  await expect(saldo).toContainText('1.500');
+  await expect(page.getByRole('progressbar')).toHaveCount(1);
+});
+
+test('falha nas metas não impede o dashboard e o atalho abre o formulário', async ({ page }) => {
+  await page.route('**/metas/resumo', route => route.fulfill({ status: 503, json: { mensagem: 'Indisponível' } }));
+  await page.goto('/');
+  await expect(page.getByTestId('saldo-atual')).toContainText('1.500');
+  await expect(page.getByText('Não foi possível carregar suas metas.', { exact: false })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Ações rápidas' }).getByRole('link', { name: 'Nova meta' }).click();
+  await expect(page).toHaveURL(/\/metas#form-meta$/);
+  await expect(page.getByLabel('O que você quer alcançar?')).toBeFocused();
+});
+
+test('pergunta sugerida só é enviada após a ação do cliente', async ({ page }) => {
+  let chamadas = 0;
+  await page.route('**/ia/status', route => route.fulfill({ json: { configurada: true } }));
+  await page.route('**/ia/perguntar', async route => {
+    chamadas++;
+    expect(route.request().postDataJSON().pergunta).toBe('Por que minha situação está assim?');
+    await route.fulfill({ json: { resposta: 'Você tem margem para planejar seus próximos passos.' } });
+  });
+  await page.goto('/insights');
+  await page.getByRole('button', { name: 'Por que minha situação está assim?' }).click();
+  await expect(page.getByLabel('Sua pergunta para a FinIA')).toBeFocused();
+  expect(chamadas).toBe(0);
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+  await expect(page.getByRole('log')).toContainText('Você tem margem para planejar seus próximos passos.');
+  await expect(page.getByRole('log')).toContainText('Por que minha situação está assim?');
+  expect(chamadas).toBe(1);
+});
+
+test('orçamento mostra a prévia sem gravar antes de salvar', async ({ page }) => {
+  let gravacoes = 0;
+  await page.route('**/orcamento', async route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    gravacoes++;
+    expect(route.request().postDataJSON()).toEqual({ rendaMensal: 3000, gastosMensais: 2800, valorPlanejadoGuardar: 300 });
+    await route.fulfill({ json: { ...capacidade, gastosMensais: 2800, margemAposMetas: -300, classificacao: 'METAS_ACIMA_DA_CAPACIDADE' } });
+  });
+  await page.goto('/planejamento');
+  await page.getByLabel('Quanto você costuma gastar por mês?').fill('2800');
+  await expect(page.getByText('Os compromissos ultrapassam a renda.', { exact: false })).toBeVisible();
+  expect(gravacoes).toBe(0);
+  await page.getByRole('button', { name: 'Salvar orçamento' }).click();
+  await expect(page.getByRole('status')).toContainText('Orçamento salvo');
+  expect(gravacoes).toBe(1);
+});
+
+test('gráfico e evolução exibem a projeção real, inclusive saldo negativo', async ({ page }) => {
+  await page.route('**/simulacoes', async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await route.fulfill({ json: {
+      meses: 3, saldoInicial: 1500, saldoFinalProjetado: -500, variacaoSaldo: -2000,
+      classificacaoFinal: 'DEFICIT', mensagem: 'O cenário exige ajustes.',
+      situacaoAtual: capacidade, totalReservaPlanejada: 0, totalAportadoMetas: 0,
+      evolucaoMensal: [
+        { indiceMes: 1, mesReferencia: '2026-10', saldoDisponivelProjetado: 1000, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500 },
+        { indiceMes: 2, mesReferencia: '2026-11', saldoDisponivelProjetado: 0, margemMensal: -1000, rendaMensal: 3000, gastosMensais: 4000 },
+        { indiceMes: 3, mesReferencia: '2026-12', saldoDisponivelProjetado: -500, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500 }
+      ], projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3m', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByRole('img', { name: 'Gráfico de evolução do saldo' })).toBeVisible();
+  await expect(page.getByText('Seu saldo diminuiria', { exact: false })).toBeVisible();
+  await expect(page.locator('figcaption')).toContainText('-R$');
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('dashboard apresenta déficit e valores grandes sem perder ações no celular', async ({ page }) => {
+  await page.route('**/analise/capacidade-gastos', route => route.fulfill({ json: { ...capacidade, saldoAtual: 9999999999.99, margemAposMetas: -700, comprometimentoMensalMetas: 2200, classificacao: 'METAS_ACIMA_DA_CAPACIDADE' } }));
+  await page.goto('/');
+  await expect(page.getByTestId('saldo-atual')).toContainText('9.999.999.999');
+  await expect(page.getByRole('link', { name: 'Revisar minhas metas' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Verificar gasto' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
