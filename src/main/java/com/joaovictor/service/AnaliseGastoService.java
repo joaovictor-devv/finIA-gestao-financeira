@@ -24,10 +24,15 @@ public class AnaliseGastoService {
     }
 
     public AnaliseGasto analisar(BigDecimal valor) {
+        ValoresMonetarios.validar(valor);
+        if (valor == null || valor.signum() <= 0) {
+            throw new IllegalArgumentException("O valor do gasto deve ser maior que zero.");
+        }
         return analisar(valor, motorFinanceiroService.calcularCapacidade());
     }
 
     public AnaliseGasto analisar(BigDecimal valor, CapacidadeFinanceira capacidade) {
+        ValoresMonetarios.validar(valor);
         if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O valor do gasto deve ser maior que zero.");
         }

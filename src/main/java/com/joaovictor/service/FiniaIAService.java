@@ -34,6 +34,9 @@ public class FiniaIAService {
             throw new IllegalArgumentException("A pergunta é obrigatória.");
         }
 
+        if (request.getPergunta().length() > 2000) {
+            throw new IllegalArgumentException("A pergunta deve ter no máximo 2000 caracteres.");
+        }
         RespostaIA resposta = openAIService.perguntar(request.getPergunta());
         return resposta.getResposta();
     }
@@ -42,8 +45,8 @@ public class FiniaIAService {
         ResultadoSimulacaoFinanceira resultado = simulacaoFinanceiraService.simular(request);
 
         StringBuilder contexto = new StringBuilder();
-        contexto.append("Explique em português, de forma simples, esta simulação financeira calculada pelo motor do FinIA. ")
-                .append("Não refaça nem altere os cálculos; apenas interprete os valores.\n\n")
+        contexto.append("Explique esta simulação financeira em até 100 palavras, com frases simples e curtas. ")
+                .append("Não refaça nem altere os cálculos. Destaque o resultado principal e apenas os valores que o explicam.\n\n")
                 .append("Cenário: ").append(resultado.getNomeCenario()).append('\n')
                 .append("Período: ").append(resultado.getMeses()).append(" meses\n")
                 .append("Saldo inicial: R$ ").append(resultado.getSaldoInicial()).append('\n')
@@ -79,8 +82,10 @@ public class FiniaIAService {
             }
         }
 
-        contexto.append("\nDiga primeiro a conclusão principal, depois os motivos e por fim o que merece atenção. ")
-                .append("Deixe claro que é uma projeção e não uma garantia do futuro.");
+        contexto.append("\nComece pelo resultado principal e explique o motivo mais importante. ")
+                .append("Se houver risco, indique um próximo passo que o usuário possa executar no aplicativo. ")
+                .append("Não enumere todos os meses ou todas as metas e não ofereça executar ações pelo chat. ")
+                .append("Lembre em uma frase curta que os valores são uma estimativa.");
 
         RespostaIA resposta = openAIService.perguntar(contexto.toString());
         return resposta.getResposta();

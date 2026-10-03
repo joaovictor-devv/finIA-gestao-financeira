@@ -95,6 +95,17 @@ public class MetaController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @PostMapping("/{id}/simular")
+    public ResponseEntity<AnaliseMeta> simularEdicao(@PathVariable long id,
+                                                   @RequestBody MetaRequest request) {
+        service.buscarPorId(id);
+        validarRequest(request);
+        Meta candidata = new Meta(id, request.getNome(), request.getValorAlvo(),
+                request.getPrazoMeses(), request.getValorInicial(),
+                request.getPrioridade(), request.getDescricao());
+        return ResponseEntity.ok(analiseMetaService.analisar(candidata));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<MetaAnaliseResponse> atualizar(@PathVariable long id,
                                                           @RequestBody MetaRequest request) {
@@ -164,6 +175,10 @@ public class MetaController {
     private void validarRequest(MetaRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Os dados da meta são obrigatórios.");
+        }
+
+        if (request.getDescricao() != null && request.getDescricao().trim().length() > 255) {
+            throw new IllegalArgumentException("A descrição deve ter no máximo 255 caracteres.");
         }
 
         service.validarMeta(

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import BudgetBreakdown from "../components/BudgetBreakdown";
+import Icon from "../components/Icon";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
@@ -81,33 +84,33 @@ function Planejamento() {
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+      <main className="finia-page">
         <p className="font-semibold text-slate-600">Carregando seu orçamento...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+    <main className="finia-page">
       <PageHeader
-        pergunta="Quanto entra e quanto sai?"
+        pergunta="Seu planejamento"
         titulo="Meu Orçamento"
-        descricao="Informe só três valores. O FinIA usa isso para calcular quanto sobra para suas metas e para novos gastos."
+        descricao="Organize o que entra, o que sai e o que fica para você."
       />
 
       {erro && <Feedback tipo="erro">{erro}</Feedback>}
       {sucesso && <Feedback>{sucesso}</Feedback>}
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
-        <form onSubmit={salvar} className="finia-card p-6 sm:p-8">
-          <div className="flex items-start gap-4">
+      <section className="finia-form-layout">
+        <form onSubmit={salvar} className="finia-card p-6 sm:p-8"><fieldset disabled={salvando}>
+          <div className="finia-form-intro">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
               <span className="material-symbols-outlined">edit_note</span>
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-[#0A192F]">Seu mês em 3 números</h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                Não precisa separar contas por categoria. Use uma média que represente sua rotina.
+                Use valores mensais que representem sua rotina.
               </p>
             </div>
           </div>
@@ -131,7 +134,7 @@ function Planejamento() {
             />
             <CurrencyInput
               label="Quanto você quer guardar por mês?"
-              ajuda="Esse valor fica protegido antes de calcular quanto pode gastar."
+              ajuda="Separe sua reserva mensal além do valor destinado às metas."
               value={form.valorPlanejadoGuardar}
               onChange={(event) => alterar("valorPlanejadoGuardar", event.target.value)}
               placeholder="300,00"
@@ -146,70 +149,34 @@ function Planejamento() {
           >
             {salvando ? "Salvando..." : "Salvar orçamento"}
           </button>
-        </form>
+        </fieldset></form>
 
         <div className="space-y-6">
-          <section className="finia-card p-6 sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-slate-500">Resultado</p>
-                <h2 className="mt-1 text-xl font-extrabold text-[#0A192F]">Quanto sobra?</h2>
-              </div>
-              {resumo?.classificacao && <StatusBadge valor={resumo.classificacao} />}
+          <section className="finia-card finia-result-panel">
+            <p className="finia-eyebrow">PRÉVIA DO SEU MÊS</p>
+            <h2 className="text-xl font-extrabold">Quanto sobra para você?</h2>
+            <p className="mt-2 text-xs leading-6 text-slate-500">A prévia acompanha os campos. Salve para aplicar as mudanças.</p>
+            <div className="my-6 rounded-2xl bg-cyan-50 p-6">
+              <p className="text-xs font-semibold text-slate-600">Depois da reserva e das metas</p>
+              <p className={"finia-number mt-2 text-3xl font-extrabold " + (previa.depoisMetas < 0 ? "text-red-700" : "text-cyan-800")}>{formatarMoeda(previa.depoisMetas)}</p>
+              <p className="mt-2 text-xs leading-6 text-slate-600">{previa.depoisMetas < 0 ? "Os compromissos ultrapassam a renda. Ajuste os valores ou revise suas metas." : "Essa é a margem mensal que resta para novas decisões."}</p>
             </div>
-
-            <div className="mt-6 space-y-4">
-              <Linha label="Renda" valor={previa.renda} sinal="+" />
-              <Linha label="Gastos" valor={previa.gastos} sinal="−" />
-              <Linha label="Quanto quer guardar" valor={previa.guardar} sinal="−" />
-              <div className="border-t border-slate-200 pt-4">
-                <Linha label="Sobra antes das metas" valor={previa.antesMetas} forte />
-              </div>
+            <BudgetBreakdown capacidade={{ rendaMensal: previa.renda, gastosMensais: previa.gastos, reservaPlanejada: previa.guardar, comprometimentoMensalMetas: previa.metas }} />
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+              <span className="text-xs text-slate-500">Sobra antes das metas</span>
+              <strong className="finia-number text-sm">{formatarMoeda(previa.antesMetas)}</strong>
             </div>
-
-            <div className="mt-6 rounded-2xl bg-cyan-50/70 p-5">
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="font-semibold text-slate-600">Suas metas usam por mês</span>
-                <strong className="finia-number text-[#0A192F]">− {formatarMoeda(previa.metas)}</strong>
-              </div>
-              <div className="mt-4 flex items-end justify-between gap-4 border-t border-cyan-100 pt-4">
-                <div>
-                  <p className="text-sm font-bold text-slate-600">Disponível depois de tudo</p>
-                  <p className="mt-1 text-xs text-slate-500">Esse é o valor usado para avaliar novas decisões.</p>
-                </div>
-                <strong className={`finia-number whitespace-nowrap text-2xl font-extrabold ${previa.depoisMetas < 0 ? "text-red-600" : "text-cyan-800"}`}>
-                  {formatarMoeda(previa.depoisMetas)}
-                </strong>
-              </div>
-            </div>
+            {resumo?.classificacao && <div className="mt-5 flex flex-wrap items-center gap-2"><span className="text-xs text-slate-500">Último orçamento salvo:</span><StatusBadge valor={resumo.classificacao} /></div>}
+            <Link to="/metas" className="finia-text-link mt-4">Revisar minhas metas<Icon name="arrow_forward" /></Link>
           </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white/60 p-5">
-            <div className="flex gap-3">
-              <span className="material-symbols-outlined mt-0.5 text-cyan-800">lightbulb</span>
-              <div>
-                <p className="font-bold text-[#0A192F]">Por que só três valores?</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  O objetivo do FinIA é ser rápido. Você informa o básico e o sistema faz os cálculos mais difíceis por trás.
-                </p>
-              </div>
-            </div>
-          </section>
+          <details className="finia-help mx-2">
+            <summary>Como definir esses valores?</summary>
+            <p>Use sua renda habitual e a média dos gastos do dia a dia. A reserva é o que você pretende guardar todo mês, além das suas metas.</p>
+            <p>Os valores servem para planejar. Você pode atualizá-los quando sua rotina mudar.</p>
+          </details>
         </div>
       </section>
     </main>
-  );
-}
-
-function Linha({ label, valor, sinal = "", forte = false }) {
-  return (
-    <div className={`flex items-center justify-between gap-4 text-sm ${forte ? "font-extrabold text-[#0A192F]" : "text-slate-600"}`}>
-      <span>{label}</span>
-      <span className="finia-number whitespace-nowrap">
-        {sinal && <span className="mr-1 text-slate-400">{sinal}</span>}
-        {formatarMoeda(valor)}
-      </span>
-    </div>
   );
 }
 
@@ -217,7 +184,7 @@ function Feedback({ children, tipo }) {
   const classes = tipo === "erro"
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
+  return <div role={tipo === "erro" ? "alert" : "status"} className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
 }
 
 function numero(valor) {

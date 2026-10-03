@@ -1,33 +1,27 @@
 import { Link, useLocation } from "react-router-dom";
+import Icon from "./Icon";
 
 const menuItems = [
-  { path: "/", label: "Dashboard", icon: "space_dashboard" },
+  { path: "/", label: "Início", icon: "space_dashboard" },
   { path: "/planejamento", label: "Meu Orçamento", icon: "account_balance_wallet" },
   { path: "/metas", label: "Metas", icon: "flag" },
   { path: "/simulacoes", label: "Simulações", icon: "query_stats" },
   { path: "/insights", label: "FinIA", icon: "auto_awesome" },
-  { path: "/perfil", label: "Perfil", icon: "person" },
 ];
-
-const mobileItems = menuItems.filter((item) => item.path !== "/perfil");
+const mobileItems = menuItems;
 
 function Sidebar() {
-  const location = useLocation();
-
-  function estaAtivo(path) {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
-    return location.pathname.startsWith(path);
-  }
+  const { pathname } = useLocation();
+  const estaAtivo = (path) => path === "/" ? pathname === "/" : pathname.startsWith(path);
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white md:flex">
-        <div className="px-6 pb-6 pt-7">
-          <Link to="/" className="flex items-center gap-3 rounded-xl">
+      <a href="#conteudo" className="finia-skip-link">Pular para o conteúdo</a>
+      <aside className="finia-sidebar">
+        <div className="px-6 pb-9 pt-8">
+          <Link to="/" className="flex items-center gap-3 rounded-xl" aria-label="FinIA — Início">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#0E7490] to-[#22D3EE] text-white shadow-sm">
-              <span className="material-symbols-outlined !text-[23px]">auto_awesome</span>
+              <span aria-hidden="true" className="material-symbols-outlined !text-[23px]">auto_awesome</span>
             </div>
             <div>
               <p className="text-xl font-extrabold tracking-tight text-[#0A192F]">FinIA</p>
@@ -35,76 +29,50 @@ function Sidebar() {
             </div>
           </Link>
         </div>
-
-        <nav className="flex-1 space-y-1 px-3" aria-label="Navegação principal">
-          {menuItems.map((item) => {
-            const active = estaAtivo(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                  active
-                    ? "bg-cyan-50 text-cyan-800"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-[#0A192F]"
-                }`}
-              >
-                <span
-                  className={`material-symbols-outlined ${active ? "[font-variation-settings:'FILL'_1]" : ""}`}
-                >
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <p className="finia-nav-caption">SEU DIA A DIA</p>
+        <nav className="space-y-1.5 px-4" aria-label="Navegação principal">
+          {menuItems.map((item) => (
+            <Link key={item.path} to={item.path} aria-current={estaAtivo(item.path) ? "page" : undefined}
+              className={"finia-nav-link " + (estaAtivo(item.path) ? "is-active" : "")}>
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+              {estaAtivo(item.path) && <span aria-hidden="true" className="finia-nav-dot" />}
+            </Link>
+          ))}
         </nav>
-
-        <div className="m-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-          <p className="text-sm font-bold text-[#0A192F]">Como o FinIA funciona?</p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
-            Você informa o básico. O sistema calcula, simula e a FinIA explica.
-          </p>
+        <div className="finia-sidebar-bottom">
+          <Link to="/insights" className="finia-assistant-link">
+            <Icon name="auto_awesome" />
+            <span><strong>Uma ajuda para decidir</strong><small>Converse com a FinIA</small></span>
+            <Icon name="arrow_forward" />
+          </Link>
+          <Link to="/perfil" aria-current={estaAtivo("/perfil") ? "page" : undefined}
+            className={"finia-nav-link mt-5 " + (estaAtivo("/perfil") ? "is-active" : "")}>
+            <Icon name="person" /><span>Meu perfil</span><Icon name="chevron_right" className="ml-auto" />
+          </Link>
         </div>
       </aside>
 
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2.5" aria-label="FinIA — Início">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0E7490] to-[#22D3EE] text-white">
-            <span className="material-symbols-outlined !text-[20px]">auto_awesome</span>
+            <span aria-hidden="true" className="material-symbols-outlined !text-[20px]">auto_awesome</span>
           </div>
           <span className="text-lg font-extrabold text-[#0A192F]">FinIA</span>
         </Link>
-        <Link
-          to="/perfil"
-          aria-label="Abrir perfil"
-          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-            estaAtivo("/perfil") ? "bg-cyan-50 text-cyan-800" : "bg-slate-50 text-slate-600"
-          }`}
-        >
-          <span className="material-symbols-outlined">person</span>
+        <Link to="/perfil" aria-label="Abrir perfil" className={"finia-icon-button " + (estaAtivo("/perfil") ? "bg-cyan-50 text-cyan-800" : "bg-slate-50 text-slate-600")}>
+          <Icon name="person" />
         </Link>
       </header>
 
-      <nav
-        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
-        aria-label="Navegação móvel"
-      >
-        {mobileItems.map((item) => {
-          const active = estaAtivo(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors ${
-                active ? "text-cyan-800" : "text-slate-500"
-              }`}
-            >
-              <span className="material-symbols-outlined !text-[22px]">{item.icon}</span>
-              <span className="max-w-full truncate">{item.label === "Meu Orçamento" ? "Orçamento" : item.label}</span>
-            </Link>
-          );
-        })}
+      <nav className="finia-mobile-nav" aria-label="Navegação móvel">
+        {mobileItems.map((item) => (
+          <Link key={item.path} to={item.path} aria-current={estaAtivo(item.path) ? "page" : undefined}
+            className={estaAtivo(item.path) ? "is-active" : ""}>
+            <span className="finia-mobile-icon"><Icon name={item.icon} /></span>
+            <span>{item.label === "Meu Orçamento" ? "Orçamento" : item.label}</span>
+          </Link>
+        ))}
       </nav>
     </>
   );

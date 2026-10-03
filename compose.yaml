@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: banco_app
+      MYSQL_USER: finia
+      MYSQL_PASSWORD: ${FINIA_DB_PASSWORD:?Defina FINIA_DB_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no .env}
+    volumes:
+      - finia-db:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  backend:
+    build: .
+    environment:
+      DB_URL: jdbc:mysql://db:3306/banco_app?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
+      DB_USER: finia
+      DB_PASSWORD: ${FINIA_DB_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - backend
+volumes:
+  finia-db:

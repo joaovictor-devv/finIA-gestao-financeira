@@ -1,0 +1,10 @@
+28/09/2026 — código baseado em 1d1295a7a03d28cc34e288ea7d1b1e4293f1a28f
+Java: Temurin 21.0.12.1, Maven 3.9.9
+mvn verify: BUILD SUCCESS
+Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+API integrada com banco H2 isolado; MySQL/Compose não executados.
+Frontend: lint PASS; build PASS
+Playwright 1.58.2 / Chromium: 14 passed
+Desktop: 1280x720; Mobile: viewport iPhone 13 / Chromium
+Respostas controladas de API nos testes de navegador.
+Imagens de inspeção: dados fictícios; não representam finanças do usuário.

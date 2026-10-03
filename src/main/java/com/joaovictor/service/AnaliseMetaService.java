@@ -227,9 +227,9 @@ public class AnaliseMetaService {
             return null;
         }
 
-        return valorRestante
-                .divide(capacidadeMensal, 0, RoundingMode.CEILING)
-                .intValue();
+        BigDecimal prazo = valorRestante.divide(capacidadeMensal, 0, RoundingMode.CEILING);
+        // Não sugerir um prazo impossível de cadastrar nem permitir overflow de int.
+        return prazo.compareTo(BigDecimal.valueOf(600)) <= 0 ? prazo.intValueExact() : null;
     }
 
     private BigDecimal valor(BigDecimal numero) {

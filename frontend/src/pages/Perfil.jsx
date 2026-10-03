@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Icon from "../components/Icon";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
@@ -63,7 +65,7 @@ function Perfil() {
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+      <main className="finia-page">
         <p className="font-semibold text-slate-600">Carregando perfil...</p>
       </main>
     );
@@ -76,25 +78,23 @@ function Perfil() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+    <main className="finia-page">
       <PageHeader
-        pergunta="Quanto tenho agora?"
-        titulo="Perfil"
-        descricao="Mantenha seu nome e saldo atualizados. O saldo é o dinheiro que você possui disponível hoje."
+        pergunta="Seu espaço"
+        titulo="Meu perfil"
+        descricao="Seu planejamento começa com informações atualizadas."
       />
 
       {erro && <Feedback tipo="erro">{erro}</Feedback>}
       {sucesso && <Feedback>{sucesso}</Feedback>}
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <form onSubmit={salvar} className="finia-card p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
-              <span className="material-symbols-outlined">person</span>
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-[#0A192F]">Seus dados básicos</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">Só usamos aqui o que realmente ajuda o sistema a funcionar.</p>
+      <section className="finia-form-layout">
+        <form onSubmit={salvar} className="finia-card p-6 sm:p-8"><fieldset disabled={salvando}>
+          <div className="finia-form-intro">
+            <div className="finia-profile-avatar" aria-hidden="true">{nome.trim().slice(0, 1).toLocaleUpperCase("pt-BR") || <Icon name="person" />}</div>
+            <div className="min-w-0">
+              <h2 className="text-xl font-extrabold tracking-tight">Do seu jeito.</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">Como você quer aparecer na FinIA.</p>
             </div>
           </div>
 
@@ -112,7 +112,7 @@ function Perfil() {
 
             <CurrencyInput
               label="Quanto dinheiro você possui disponível hoje?"
-              ajuda="Você pode atualizar esse valor manualmente quando quiser. Não é preciso cadastrar transações."
+              ajuda="Informe seu saldo disponível e atualize quando ele mudar."
               value={saldo}
               onChange={(event) => setSaldo(event.target.value)}
               placeholder="1.200,00"
@@ -123,12 +123,12 @@ function Perfil() {
           <button type="submit" disabled={salvando} className="finia-button-primary mt-8 w-full px-5 py-3.5 sm:w-auto">
             {salvando ? "Salvando..." : "Salvar alterações"}
           </button>
-        </form>
+        </fieldset></form>
 
         <div className="space-y-6">
           <section className="finia-card p-6 sm:p-8">
             <h2 className="text-xl font-extrabold text-[#0A192F]">Seu FinIA</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">Um resumo rápido do que já está configurado.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-500">Seu ponto de partida para usar a FinIA.</p>
             <div className="mt-6 space-y-3">
               <StatusLinha
                 icon="account_balance_wallet"
@@ -139,55 +139,52 @@ function Perfil() {
               <StatusLinha
                 icon="receipt_long"
                 titulo="Orçamento"
+                to="/planejamento"
                 descricao={orcamentoConfigurado ? "Configurado" : "Falta informar renda e gastos"}
                 ok={Boolean(orcamentoConfigurado)}
               />
               <StatusLinha
                 icon="flag"
                 titulo="Metas"
+                to="/metas"
                 descricao={`${quantidadeMetas} ${quantidadeMetas === 1 ? "meta cadastrada" : "metas cadastradas"}`}
                 ok={quantidadeMetas > 0}
               />
             </div>
           </section>
 
-          <section className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
-            <div className="flex gap-3">
-              <span className="material-symbols-outlined mt-0.5 text-cyan-800">info</span>
-              <div>
-                <p className="font-extrabold text-[#0A192F]">Saldo não é orçamento</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">O saldo diz quanto você tem agora. O orçamento diz quanto entra, sai e deve ficar reservado a cada mês.</p>
-              </div>
-            </div>
-          </section>
+          <details className="finia-help mx-2">
+            <summary>Qual a diferença entre saldo e orçamento?</summary>
+            <p>O saldo é o dinheiro disponível hoje. O orçamento mostra quanto entra, sai e fica reservado a cada mês.</p>
+            <Link to="/planejamento" className="finia-text-link mt-2">Organizar meu mês<Icon name="arrow_forward" /></Link>
+          </details>
         </div>
       </section>
     </main>
   );
 }
 
-function StatusLinha({ icon, titulo, descricao, ok }) {
-  return (
-    <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${ok ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
+function StatusLinha({ icon, titulo, descricao, ok, to }) {
+  const conteudo = (
+    <>
+      <span className="finia-icon-tile"><Icon name={icon} /></span>
       <div className="min-w-0 flex-1">
-        <p className="font-bold text-[#0A192F]">{titulo}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{descricao}</p>
+        <p className="text-sm font-extrabold">{titulo}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{descricao}</p>
       </div>
-      <span className={`material-symbols-outlined !text-[20px] ${ok ? "text-emerald-600" : "text-slate-300"}`}>
-        {ok ? "check_circle" : "radio_button_unchecked"}
-      </span>
-    </div>
+      <Icon name={to ? "chevron_right" : ok ? "check_circle" : "radio_button_unchecked"}
+        className={ok && !to ? "text-emerald-700" : "text-slate-500"} />
+    </>
   );
+  const estilo = "flex items-center gap-3 rounded-2xl border border-slate-100 p-4";
+  return to ? <Link to={to} className={estilo + " transition hover:border-cyan-200 hover:bg-cyan-50/50"}>{conteudo}</Link> : <div className={estilo}>{conteudo}</div>;
 }
 
 function Feedback({ children, tipo }) {
   const classes = tipo === "erro"
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
+  return <div role={tipo === "erro" ? "alert" : "status"} className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{children}</div>;
 }
 
 function numero(valor) {

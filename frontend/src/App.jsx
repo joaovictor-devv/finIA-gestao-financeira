@@ -13,7 +13,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Sidebar />
-      <div className="pb-24 pt-16 md:ml-64 md:pb-0 md:pt-0">
+      <div id="conteudo" tabIndex={-1} className="finia-app-content">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/planejamento" element={<Planejamento />} />

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import Icon from "../components/Icon";
+import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
@@ -16,6 +18,7 @@ const cenarios = [
 ];
 
 function Simulacoes() {
+  const [eventos, setEventos] = useState([]);
   const [capacidade, setCapacidade] = useState(null);
   const [metas, setMetas] = useState([]);
   const [cenario, setCenario] = useState("normal");
@@ -61,7 +64,15 @@ function Simulacoes() {
 
   const cenarioAtual = useMemo(() => cenarios.find((item) => item.id === cenario), [cenario]);
 
+  function limparResultado() {
+    setResultado(null);
+    setUltimoPayload(null);
+    setExplicacaoIA("");
+    setErro("");
+  }
+
   function selecionarCenario(novoCenario) {
+    setEventos([]);
     setCenario(novoCenario);
     setResultado(null);
     setUltimoPayload(null);
@@ -108,6 +119,7 @@ function Simulacoes() {
     if (cenario === "personalizado") {
       payload.rendaMensal = numero(rendaPersonalizada);
       payload.gastosMensais = numero(gastosPersonalizados);
+      payload.eventos = eventos.map(({ mes, tipo, valor, metaId }) => ({ mes: Number(mes), tipo, valor: Number(valor), ...(metaId ? { metaId: Number(metaId) } : {}) }));
     }
 
     return payload;
@@ -135,13 +147,16 @@ function Simulacoes() {
       return "Crie uma meta antes de testar um valor extra para ela.";
     }
 
+    if (cenario === "personalizado" && eventos.some((e) => !e.valor.trim() || !Number.isInteger(Number(e.mes)) || Number(e.mes) < 1 || Number(e.mes) > meses)) {
+      return "Preencha o valor de cada evento e escolha um mês dentro do período simulado.";
+    }
     return "";
   }
 
   async function simular(event) {
     event.preventDefault();
     setErro("");
-    setExplicacaoIA("");
+    limparResultado();
 
     const problema = validarCenario();
     if (problema) {
@@ -169,7 +184,7 @@ function Simulacoes() {
     try {
       const status = await api.get("/ia/status");
       if (!status.data.configurada) {
-        setErro("A FinIA ainda não está configurada com a chave da OpenAI neste computador.");
+        setErro("As explicações por IA ainda não estão disponíveis. Você pode consultar os resultados calculados abaixo.");
         return;
       }
       const response = await api.post("/ia/explicar-simulacao", ultimoPayload);
@@ -183,32 +198,26 @@ function Simulacoes() {
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+      <main className="finia-page">
         <p className="font-semibold text-slate-600">Preparando o ambiente de simulação...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F6FAFE] px-4 py-8 sm:px-6 md:px-10 lg:px-12">
+    <main className="finia-page">
       <PageHeader
-        pergunta="O que acontece se eu fizer isso?"
+        pergunta="Explore possibilidades"
         titulo="Simulações"
-        descricao="Teste uma decisão antes de tomá-la e veja como seu saldo e suas metas podem mudar nos próximos meses."
+        descricao="Experimente uma decisão. Veja o impacto antes de dar o próximo passo."
       />
 
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 text-sm text-cyan-900">
-        <span className="material-symbols-outlined mt-0.5">science</span>
-        <div>
-          <p className="font-extrabold">Ambiente de teste</p>
-          <p className="mt-1 leading-6">Nada feito nesta tela altera seu saldo, orçamento ou metas reais.</p>
-        </div>
-      </div>
+      <p className="mb-6 flex items-start gap-2 text-xs leading-6 text-slate-600"><Icon name="science" className="text-cyan-800" /><span>Você está simulando. Seu saldo, orçamento e metas permanecem como estão.</span></p>
 
-      {erro && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
+      {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
       {capacidade && (
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="finia-metric-strip" aria-label="Ponto de partida">
           <PontoPartida titulo="Saldo hoje" valor={formatarMoeda(capacidade.saldoAtual)} />
           <PontoPartida titulo="Renda por mês" valor={formatarMoeda(capacidade.rendaMensal)} />
           <PontoPartida titulo="Gastos por mês" valor={formatarMoeda(capacidade.gastosMensais)} />
@@ -219,33 +228,28 @@ function Simulacoes() {
       <section className="mt-8">
         <h2 className="text-xl font-extrabold text-[#0A192F]">1. O que você quer testar?</h2>
         <p className="mt-1 text-sm text-slate-500">Escolha a situação mais parecida com a sua ideia.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {cenarios.map((item) => {
             const ativo = cenario === item.id;
             return (
               <button
                 key={item.id}
+                disabled={simulando || explicando}
+                aria-pressed={ativo}
                 type="button"
                 onClick={() => selecionarCenario(item.id)}
-                className={`rounded-2xl border p-5 text-left transition ${
-                  ativo
-                    ? "border-cyan-400 bg-cyan-50 shadow-sm"
-                    : "border-slate-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/40"
-                }`}
+                className={"finia-scenario " + (ativo ? "is-active " : "") + (item.id === "personalizado" ? "sm:col-span-2 xl:col-span-3" : "")}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${ativo ? "bg-cyan-700 text-white" : "bg-slate-50 text-slate-600"}`}>
-                  <span className="material-symbols-outlined">{item.icon}</span>
-                </div>
-                <p className="mt-4 font-extrabold text-[#0A192F]">{item.titulo}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{item.descricao}</p>
+                <span className="finia-icon-tile"><Icon name={item.icon} /></span>
+                <div><p>{item.titulo}</p><small>{item.descricao}</small></div>
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <form onSubmit={simular} className="finia-card p-6 sm:p-8">
+      <section className="finia-form-layout mt-8">
+        <form onSubmit={simular} onChange={limparResultado} className="finia-card p-6 sm:p-8"><fieldset disabled={simulando || explicando || !capacidade}>
           <h2 className="text-xl font-extrabold text-[#0A192F]">2. Informe os detalhes</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">{cenarioAtual?.descricao}</p>
 
@@ -318,6 +322,7 @@ function Simulacoes() {
               </>
             )}
 
+            {cenario === "personalizado" && <EventosCenario eventos={eventos} metas={metas} meses={meses} onChange={(novos) => { setEventos(novos); limparResultado(); }} />}
             <div>
               <span className="text-sm font-bold text-[#0A192F]">Por quanto tempo você quer olhar?</span>
               <div className="mt-2 grid grid-cols-4 gap-2">
@@ -326,6 +331,7 @@ function Simulacoes() {
                     key={opcao}
                     type="button"
                     onClick={() => {
+                      limparResultado();
                       setMeses(opcao);
                       setMesEvento((atual) => Math.min(atual, opcao));
                     }}
@@ -355,20 +361,20 @@ function Simulacoes() {
 
           <button
             type="submit"
-            disabled={simulando || (cenario === "aporte" && metas.length === 0)}
+            disabled={simulando || !capacidade || (cenario === "aporte" && metas.length === 0)}
             className="finia-button-primary mt-7 w-full px-5 py-3.5"
           >
             {simulando ? "Simulando..." : "3. Ver o que aconteceria"}
           </button>
-        </form>
+        </fieldset></form>
 
         <section className="finia-card p-6 sm:p-8">
           <h2 className="text-xl font-extrabold text-[#0A192F]">Resultado</h2>
           {!resultado ? (
-            <div className="mt-6 flex min-h-72 flex-col items-center justify-center rounded-2xl bg-slate-50 p-8 text-center">
+            <div className="finia-empty mt-6 flex min-h-80 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6">
               <span className="material-symbols-outlined !text-[38px] text-slate-400">query_stats</span>
-              <p className="mt-4 font-extrabold text-slate-700">O futuro simulado aparece aqui</p>
-              <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">Escolha uma situação, informe os detalhes e veja como seu saldo e suas metas podem reagir.</p>
+              <p className="mt-4 font-extrabold text-slate-700">Toda decisão começa com uma possibilidade.</p>
+              <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">Escolha um cenário e veja a projeção do seu saldo e das suas metas.</p>
             </div>
           ) : (
             <ResultadoSimulacao resultado={resultado} />
@@ -392,7 +398,7 @@ function Simulacoes() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-extrabold text-[#0A192F]">Evolução mês a mês</h2>
-                <p className="mt-1 text-sm text-slate-500">Veja como o cenário evolui sem confundir projeção com dinheiro real.</p>
+                <p className="mt-1 text-sm text-slate-500">Saldo disponível projetado em cada mês.</p>
               </div>
               <span className="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-800">PROJEÇÃO</span>
             </div>
@@ -420,7 +426,7 @@ function Simulacoes() {
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {resultado.projecoesMetas.map((meta) => (
                   <article key={meta.id} className="rounded-2xl border border-slate-200 p-5">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <h3 className="font-extrabold text-[#0A192F]">{meta.nome}</h3>
                       {meta.concluidaNoPeriodo && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Concluída no cenário</span>}
                     </div>
@@ -449,8 +455,8 @@ function Simulacoes() {
                   <span className="material-symbols-outlined">auto_awesome</span>
                   <span className="text-sm font-extrabold">FinIA</span>
                 </div>
-                <h2 className="mt-2 text-xl font-extrabold">Quer uma explicação mais simples desse cenário?</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-300">Os números já foram calculados pelo sistema. A IA apenas usa esses resultados para explicar o que eles significam.</p>
+                <h2 className="mt-2 text-xl font-extrabold">Vamos entender esse cenário?</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">Peça à FinIA para explicar o impacto dessa decisão no seu planejamento.</p>
               </div>
               <button type="button" onClick={explicarComIA} disabled={explicando} className="rounded-xl bg-white px-5 py-3 font-extrabold text-[#0A192F] transition hover:bg-cyan-50 disabled:opacity-60">
                 {explicando ? "Explicando..." : "Explicar com a FinIA"}
@@ -505,7 +511,7 @@ function Comparacao({ label, atual, depois, inverter = false }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-5">
       <p className="text-sm font-bold text-slate-600">{label}</p>
-      <div className="mt-4 flex items-end justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-slate-400">Hoje</p>
           <p className="finia-number mt-1 font-extrabold text-slate-700">{formatarMoeda(atualNumero)}</p>
@@ -524,29 +530,44 @@ function Comparacao({ label, atual, depois, inverter = false }) {
 
 function MiniGrafico({ dados }) {
   if (!dados.length) return null;
-  const valores = dados.map((item) => Number(item.saldoDisponivelProjetado || 0));
-  const min = Math.min(...valores);
-  const max = Math.max(...valores);
+  const valores = dados.map((item) => Number(item.saldoDisponivelProjetado) || 0);
+  const min = Math.min(0, ...valores);
+  const max = Math.max(0, ...valores);
   const amplitude = Math.max(1, max - min);
-  const pontos = valores.map((valorAtual, index) => {
-    const x = dados.length === 1 ? 50 : (index / (dados.length - 1)) * 100;
-    const y = 90 - ((valorAtual - min) / amplitude) * 75;
-    return `${x},${y}`;
-  }).join(" ");
+  const coordenadas = valores.map((valor, index) => ({
+    x: dados.length === 1 ? 300 : 12 + index / (dados.length - 1) * 576,
+    y: 176 - (valor - min) / amplitude * 156,
+  }));
+  const pontos = coordenadas.map(({ x, y }) => x + "," + y).join(" ");
+  const base = 176 - (0 - min) / amplitude * 156;
+  const area = coordenadas[0].x + "," + base + " " + pontos + " " + coordenadas.at(-1).x + "," + base;
 
   return (
-    <div className="mt-6 h-48 overflow-hidden rounded-2xl bg-slate-50 p-4">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" aria-label="Gráfico de evolução do saldo">
-        <line x1="0" y1="90" x2="100" y2="90" stroke="#dbe3ea" strokeWidth="0.8" />
+    <figure className="finia-chart">
+      <figcaption className="finia-chart-scale">
+        <span>Saldo projetado · R$</span><span>Escala: {formatarMoeda(min)} a {formatarMoeda(max)}</span>
+      </figcaption>
+      <svg role="img" viewBox="0 0 600 200" className="h-44 w-full sm:h-52" preserveAspectRatio="none" aria-label="Gráfico de evolução do saldo">
+        <title>Projeção de saldo disponível</title>
+        <desc>{"De " + formatarMoeda(valores[0]) + " no primeiro mês a " + formatarMoeda(valores.at(-1)) + " no último. Os valores de cada mês aparecem abaixo."}</desc>
+        {[20, 98, 176].map((y) => <line key={y} x1="12" x2="588" y1={y} y2={y} stroke="#e5ecf2" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
+        <line x1="12" x2="588" y1={base} y2={base} stroke="#b4c8d7" vectorEffect="non-scaling-stroke" />
+        <polygon points={area} fill="#0E7490" fillOpacity="0.06" />
         <polyline points={pontos} fill="none" stroke="#0E7490" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {coordenadas.map(({ x, y }, index) => (
+          <circle key={index} cx={x} cy={y} r="3.5" fill="#0E7490" stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke">
+            <title>{formatarMesReferencia(dados[index].mesReferencia) + ": " + formatarMoeda(valores[index])}</title>
+          </circle>
+        ))}
       </svg>
-    </div>
+      <div className="finia-chart-dates"><span>{formatarMesReferencia(dados[0].mesReferencia)}</span>{dados.length > 1 && <span>{formatarMesReferencia(dados.at(-1).mesReferencia)}</span>}</div>
+    </figure>
   );
 }
 
 function PontoPartida({ titulo, valor, destaque = false }) {
   return (
-    <div className="finia-card p-5">
+    <div>
       <p className="text-xs font-bold text-slate-500">{titulo}</p>
       <p className={`finia-number mt-2 text-xl font-extrabold ${destaque ? "text-cyan-800" : "text-[#0A192F]"}`}>{valor}</p>
     </div>

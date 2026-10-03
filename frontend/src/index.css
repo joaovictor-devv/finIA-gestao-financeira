@@ -2,124 +2,240 @@
 
 :root {
   font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #171c1f;
-  background: #f6fafe;
+  color: #0A192F;
+  background: #F6FAFE;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  --finia-navy: #0A192F;
+  --finia-cyan: #0E7490;
+  --finia-bright: #22D3EE;
+  --finia-line: #e5ecf2;
+  --finia-muted: #526176;
 }
-
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-padding-top: 88px; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), summary { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid #0E7490;
+  outline-offset: 4px;
 }
-
-html {
-  min-width: 320px;
-  background: #f0f4f8;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background: #f6fafe;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid rgba(6, 182, 212, 0.22);
-  outline-offset: 2px;
-}
-
-::selection {
-  background: #b9eaff;
-  color: #0a192f;
-}
-
+::selection { background: #b9eaff; color: #0A192F; }
+fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+fieldset:disabled { opacity: .75; }
 .material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: 400;
+  font-style: normal;
+  display: inline-block;
+  flex-shrink: 0;
+  white-space: nowrap;
+  word-wrap: normal;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
   font-size: 21px;
   line-height: 1;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
+.finia-app-content { min-width: 0; padding: 64px 0 96px; }
+.finia-page { max-width: 1480px; min-height: calc(100svh - 160px); margin: 0 auto; padding: 28px 20px 40px; }
+.finia-page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+.finia-eyebrow { color: var(--finia-cyan); font-size: 12px; font-weight: 800; letter-spacing: .08em; margin-bottom: 7px; }
+.finia-page-header h1 { font-size: clamp(1.75rem, 2.5vw, 2.25rem); font-weight: 800; line-height: 1.2; letter-spacing: -.045em; overflow-wrap: anywhere; }
+.finia-page-description { max-width: 580px; font-size: 14px; line-height: 1.75; margin-top: 9px; color: var(--finia-muted); }
+.finia-header-action { flex-shrink: 0; max-width: 100%; }
+.finia-card { min-width: 0; overflow-wrap: anywhere; border: 1px solid var(--finia-line); border-radius: 24px; background: #fff; box-shadow: 0 3px 12px -8px rgb(10 25 47 / .12); }
+.finia-input { min-width: 0; width: 100%; border: 1px solid #ccd8e3; border-radius: 12px; background: #fff; color: var(--finia-navy); transition: border-color 150ms ease, box-shadow 150ms ease; }
+.finia-input:focus { border-color: var(--finia-cyan); box-shadow: 0 0 0 3px rgb(14 116 144 / .13); outline: none; }
+.finia-input::placeholder { color: #758397; }
+.finia-button-primary, .finia-button-secondary { min-height: 44px; border-radius: 12px; font-weight: 800; font-size: 14px; text-align: center; transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease; }
+.finia-button-primary { background: var(--finia-navy); color: #fff; }
+.finia-button-primary:hover:not(:disabled) { background: var(--finia-cyan); box-shadow: 0 4px 12px rgb(14 116 144 / .16); }
+.finia-button-primary:active:not(:disabled) { transform: translateY(1px); }
+.finia-button-primary:disabled, .finia-button-secondary:disabled { opacity: .5; cursor: not-allowed; }
+.finia-button-secondary { border: 1px solid #cde4eb; background: #eef9fc; color: #0e627a; }
+.finia-button-secondary:hover:not(:disabled) { background: #dff3f8; border-color: #99cedb; }
+.finia-number { font-variant-numeric: tabular-nums; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.finia-icon-button { width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 150ms ease; }
+.finia-icon-button:hover { background: #e4f3f8; }
+.finia-text-link { color: var(--finia-cyan); font-size: 13px; font-weight: 800; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.finia-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.finia-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 20px; }
+.finia-section-heading h2 { font-size: 18px; font-weight: 800; letter-spacing: -.025em; }
+.finia-section-heading p { font-size: 13px; color: var(--finia-muted); margin-top: 4px; line-height: 1.6; }
+.finia-help { border-top: 1px solid var(--finia-line); padding-top: 18px; color: var(--finia-muted); font-size: 13px; line-height: 1.75; }
+.finia-help summary { color: var(--finia-navy); font-weight: 700; padding: 6px 0; }
+.finia-help p { margin-top: 10px; }
+.finia-skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: #fff; padding: 12px 20px; border-radius: 12px; }
+.finia-skip-link:focus { top: 12px; }
+.finia-sidebar { display: none; }
+.finia-nav-caption { margin: 0 28px 12px; font-size: 10px; font-weight: 800; letter-spacing: .13em; color: #6b7a8d; }
+.finia-nav-link { display: flex; align-items: center; gap: 12px; min-height: 48px; border-radius: 12px; padding: 12px 16px; color: #58677b; font-size: 13px; font-weight: 700; transition: background 150ms ease; }
+.finia-nav-link:hover { background: #F6FAFE; color: var(--finia-navy); }
+.finia-nav-link.is-active { background: #eaf7fb; color: var(--finia-cyan); font-weight: 800; }
+.finia-nav-link.is-active > .material-symbols-outlined { font-variation-settings: "FILL" 1; }
+.finia-nav-dot { width: 5px; height: 5px; background: var(--finia-cyan); border-radius: 50%; margin-left: auto; }
+.finia-sidebar-bottom { margin-top: auto; padding: 28px 16px 20px; }
+.finia-assistant-link { padding: 18px 14px; display: flex; gap: 10px; align-items: center; color: var(--finia-cyan); border: 1px solid #d5eaf1; background: linear-gradient(135deg, #eef9fc, #fff); border-radius: 18px; }
+.finia-assistant-link strong { display: block; color: var(--finia-navy); font-size: 11px; line-height: 1.6; }
+.finia-assistant-link small { display: block; font-size: 11px; margin-top: 3px; }
+.finia-assistant-link > .material-symbols-outlined:last-child { font-size: 17px; }
+.finia-mobile-nav { position: fixed; inset: auto 0 0; z-index: 50; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 4px max(8px, env(safe-area-inset-bottom)); background: rgb(255 255 255 / .97); border-top: 1px solid var(--finia-line); backdrop-filter: blur(12px); }
+.finia-mobile-nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 2px 4px; color: #526176; font-size: 11px; font-weight: 700; min-width: 0; }
+.finia-mobile-icon { width: 48px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 20px; }
+.finia-mobile-nav .is-active { color: var(--finia-cyan); }
+.finia-mobile-nav .is-active .finia-mobile-icon { background: #e5f5fa; }
+.finia-mobile-nav .is-active .material-symbols-outlined { font-variation-settings: "FILL" 1; }
 
-.finia-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
-  background: #ffffff;
-  box-shadow: 0 4px 20px -2px rgba(10, 25, 47, 0.04),
-    0 2px 6px -1px rgba(10, 25, 47, 0.02);
+/* Account overview: current balance and monthly flow are distinct. */
+.finia-overview { overflow: hidden; }
+.finia-overview-main { display: grid; }
+.finia-balance { padding: 28px; }
+.finia-balance-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #526176; font-size: 13px; font-weight: 700; }
+.finia-balance-value { margin-top: 8px; font-size: clamp(2.1rem, 4.1vw, 3.1rem); line-height: 1.2; font-weight: 800; letter-spacing: -.06em; }
+.finia-balance-note { margin-top: 10px; font-size: 12px; color: #526176; line-height: 1.65; }
+.finia-monthly { min-width: 0; margin: 0 20px 20px; border-radius: 18px; background: #eef9fc; padding: 24px; }
+.finia-monthly-label { font-size: 13px; font-weight: 700; color: #346478; }
+.finia-monthly-value { font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.25; font-weight: 800; margin-top: 9px; color: var(--finia-cyan); }
+.finia-monthly-value.is-negative { color: #b91c1c; }
+.finia-monthly p:last-child { margin-top: 8px; font-size: 12px; line-height: 1.7; color: #526176; }
+.finia-cashflow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--finia-line); }
+.finia-cashflow > div { padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.finia-cashflow > div + div { border-left: 1px solid var(--finia-line); }
+.finia-cashflow small { display: block; font-size: 11px; color: #526176; }
+.finia-cashflow strong { display: block; font-size: 16px; font-weight: 800; margin-top: 4px; }
+.finia-icon-tile { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 14px; background: #eef9fc; color: var(--finia-cyan); }
+.finia-quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 22px 0 30px; }
+.finia-quick-action { display: flex; flex-direction: column; align-items: center; gap: 10px; border-radius: 16px; padding: 10px 2px; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; color: #334155; }
+.finia-quick-action > span:first-child { width: 52px; height: 52px; border: 1px solid #dce7ef; background: #fff; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--finia-cyan); transition: background 150ms ease, transform 150ms ease; }
+.finia-quick-action:hover > span:first-child { background: #e4f5fa; transform: translateY(-2px); }
+.finia-dashboard-grid { display: grid; gap: 22px; align-items: start; }
+.finia-panel { padding: 24px; }
+.finia-budget-list { display: grid; gap: 20px; }
+.finia-budget-row > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13px; }
+.finia-budget-label { display: flex; align-items: center; gap: 8px; color: #526176; }
+.finia-budget-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bar-color); }
+.finia-budget-track { height: 6px; background: #edf2f7; border-radius: 8px; margin-top: 9px; overflow: hidden; }
+.finia-budget-track > div { height: 100%; background: var(--bar-color); border-radius: inherit; }
+.finia-situation { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--finia-line); }
+.finia-situation h3 { margin-top: 12px; font-size: 15px; font-weight: 800; }
+.finia-situation p { color: #526176; font-size: 13px; line-height: 1.8; margin-top: 6px; }
+.finia-goal-preview { display: block; padding: 20px 0; border-top: 1px solid var(--finia-line); }
+.finia-goal-preview:first-child { padding-top: 0; border: 0; }
+.finia-goal-preview:hover h3 { color: var(--finia-cyan); }
+.finia-goal-topline { display: flex; gap: 12px; align-items: center; }
+.finia-goal-topline > div { min-width: 0; flex: 1; }
+.finia-goal-topline h3 { font-weight: 800; font-size: 14px; overflow-wrap: anywhere; }
+.finia-goal-topline p { color: #526176; font-size: 12px; margin-top: 4px; }
+.finia-goal-progress { margin-top: 20px; }
+.finia-goal-progress-track { height: 7px; border-radius: 8px; background: #eaf0f5; overflow: hidden; }
+.finia-goal-progress-track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0E7490, #22D3EE); }
+.finia-goal-progress-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin-top: 10px; font-size: 12px; color: #526176; }
+.finia-goal-progress-label strong { color: var(--finia-navy); }
+.finia-assistant-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 24px; border-radius: 24px; background: var(--finia-navy); color: #fff; margin-top: 24px; }
+.finia-assistant-banner .finia-icon-tile { background: rgb(34 211 238 / .12); color: #67e8f9; width: 48px; height: 48px; border-radius: 16px; }
+.finia-assistant-banner h2 { font-size: 17px; font-weight: 800; }
+.finia-assistant-banner p { color: #ccd8e3; font-size: 13px; line-height: 1.75; margin-top: 4px; }
+.finia-assistant-banner > div { flex: 1; min-width: 180px; }
+.finia-assistant-banner > a { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; font-size: 13px; font-weight: 800; padding: 10px 16px; border-radius: 12px; background: #fff; color: var(--finia-navy); }
+.finia-empty { text-align: center; padding: 28px 12px; }
+.finia-empty > .finia-icon-tile { width: 56px; height: 56px; border-radius: 20px; margin-bottom: 16px; }
+.finia-empty h3 { font-weight: 800; font-size: 15px; }
+.finia-empty p { max-width: 320px; margin: 8px auto 0; font-size: 13px; line-height: 1.75; color: #526176; }
+
+/* Shared detail pages. */
+.finia-goal-card { overflow: hidden; }
+.finia-goal-card-head { padding: 24px 24px 0; }
+.finia-goal-card-body { padding: 0 24px 24px; }
+.finia-goal-card-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--finia-line); }
+.finia-goal-card-actions button { flex-grow: 1; }
+.finia-form-layout { display: grid; align-items: start; gap: 24px; }
+.finia-result-panel { padding: 28px; background: #fff; }
+.finia-form-intro { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--finia-line); padding-bottom: 24px; }
+.finia-profile-avatar { display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 20px; background: #e6f6fa; color: var(--finia-cyan); font-size: 22px; font-weight: 800; flex-shrink: 0; }
+.finia-metric-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; border-radius: 20px; border: 1px solid var(--finia-line); background: #fff; gap: 4px; }
+.finia-metric-strip > div { padding: 16px; min-width: 0; }
+.finia-scenario { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 12px; border: 1px solid var(--finia-line); border-radius: 16px; padding: 16px; text-align: left; background: #fff; transition: border-color 150ms ease, background 150ms ease; }
+.finia-scenario p { font-size: 13px; font-weight: 800; line-height: 1.5; }
+.finia-scenario small { display: block; color: #526176; font-size: 11px; line-height: 1.65; margin-top: 4px; }
+.finia-scenario:hover { border-color: #92c7d7; }
+.finia-scenario.is-active { border-color: var(--finia-cyan); background: #eaf7fb; box-shadow: inset 0 0 0 1px var(--finia-cyan); }
+.finia-scenario.is-active .finia-icon-tile { background: var(--finia-cyan); color: #fff; }
+.finia-chart { margin-top: 24px; padding: 20px 16px 12px; border: 1px solid var(--finia-line); border-radius: 18px; background: #fbfdff; }
+.finia-chart-scale { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: #526176; font-size: 11px; margin-bottom: 12px; }
+.finia-chart-dates { display: flex; justify-content: space-between; gap: 16px; font-size: 11px; color: #526176; margin-top: 8px; }
+
+/* Conversation keeps the composer within reach. */
+.finia-chat-layout { display: grid; align-items: start; gap: 22px; }
+.finia-chat { display: flex; flex-direction: column; height: min(740px, calc(100svh - 180px)); min-height: 540px; overflow: hidden; }
+.finia-chat-header { padding: 20px 24px; border-bottom: 1px solid var(--finia-line); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.finia-chat-log { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 24px; scrollbar-width: thin; }
+.finia-chat-welcome { text-align: center; max-width: 540px; margin: 12px auto; }
+.finia-chat-orb { display: inline-flex; width: 64px; height: 64px; align-items: center; justify-content: center; border-radius: 22px; background: #eef9fc; color: var(--finia-cyan); border: 1px solid #d9eef4; }
+.finia-chat-orb .material-symbols-outlined { font-size: 30px; }
+.finia-chat-welcome h2 { font-size: 22px; font-weight: 800; letter-spacing: -.035em; margin-top: 20px; }
+.finia-chat-welcome > p { font-size: 13px; line-height: 1.8; color: #526176; margin: 10px auto 22px; max-width: 330px; }
+.finia-chat-prompts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.finia-chat-prompt { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid #dce7ef; border-radius: 14px; background: #fff; font-size: 12px; font-weight: 700; line-height: 1.75; text-align: left; color: #334155; }
+.finia-chat-prompt .material-symbols-outlined { color: var(--finia-cyan); font-size: 19px; margin-top: 2px; }
+.finia-chat-prompt:hover:not(:disabled) { background: #eef9fc; border-color: #92c7d7; }
+.finia-chat-prompt:disabled { opacity: .6; }
+.finia-chat-message { display: flex; margin-bottom: 20px; }
+.finia-chat-message.is-user { justify-content: flex-end; }
+.finia-chat-bubble { max-width: 92%; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 18px 18px 18px 4px; padding: 16px 18px; background: #f1f7fa; color: #334155; font-size: 14px; line-height: 1.9; }
+.finia-chat-bubble small { display: block; font-size: 10px; font-weight: 800; letter-spacing: .08em; margin-bottom: 6px; color: var(--finia-cyan); }
+.is-user .finia-chat-bubble { background: var(--finia-navy); color: #fff; border-radius: 18px 18px 4px 18px; }
+.is-user .finia-chat-bubble small { color: #a5eafa; }
+.finia-chat-composer { padding: 16px 20px; border-top: 1px solid var(--finia-line); background: #fff; }
+.finia-chat-composer > div { display: flex; gap: 10px; align-items: flex-end; }
+.finia-chat-composer textarea { min-height: 52px; max-height: 180px; resize: vertical; font-size: 14px; padding: 14px; }
+.finia-chat-composer button { width: 48px; height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.finia-chat-composer > p { margin-bottom: 12px; font-size: 12px; line-height: 1.65; color: #526176; }
+.finia-chat-context { order: 2; }
+@media (min-width: 640px) {
+  .finia-page { padding: 36px 28px 48px; }
+  .finia-overview-main { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; }
+  .finia-balance { padding: 32px; }
+  .finia-monthly { margin: 24px 24px 24px 0; }
+  .finia-quick-action { flex-direction: row; gap: 12px; text-align: left; font-size: 13px; padding: 12px 0; }
+  .finia-panel { padding: 28px; }
+  .finia-chat-prompts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-.finia-input {
-  width: 100%;
-  border: 1px solid #dbe3ea;
-  border-radius: 0.75rem;
-  background: #ffffff;
-  color: #0a192f;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+@media (min-width: 768px) {
+  html { scroll-padding-top: 32px; }
+  .finia-app-content { padding: 0; margin-left: 256px; }
+  .finia-page { min-height: 100svh; }
+  .finia-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: 256px; display: flex; flex-direction: column; border-right: 1px solid var(--finia-line); background: #fff; overflow-y: auto; }
+  .finia-mobile-nav { display: none; }
+  .finia-quick-actions { gap: 8px; }
+  .finia-quick-action { flex-direction: column; text-align: center; }
 }
-
-.finia-input:focus {
-  border-color: #06b6d4;
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12);
-  outline: none;
+@media (min-width: 1200px) {
+  .finia-page { padding: 40px 40px 56px; }
+  .finia-dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .finia-quick-action { flex-direction: row; text-align: left; }
+  .finia-quick-action > span:first-child { width: 48px; height: 48px; }
+  .finia-form-layout { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
+  .finia-metric-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .finia-metric-strip > div + div { border-left: 1px solid var(--finia-line); }
+  .finia-chat-layout { grid-template-columns: minmax(0, 1fr) 280px; }
+  .finia-chat-context { order: 0; }
 }
-
-.finia-input::placeholder {
-  color: #94a3b8;
+@media (max-width: 420px) {
+  .finia-page { padding-left: 16px; padding-right: 16px; }
+  .finia-balance { padding: 24px; }
+  .finia-monthly { margin: 0 16px 16px; padding: 20px; }
+  .finia-cashflow > div { padding: 16px; }
+  .finia-cashflow .finia-icon-tile { display: none; }
+  .finia-quick-action { font-size: 11px; }
+  .finia-chat-log { padding: 18px; }
+  .finia-chat-composer { padding: 14px; }
+  .finia-chat-header { padding: 18px; }
 }
-
-.finia-button-primary {
-  border-radius: 0.75rem;
-  background: #0a192f;
-  color: #ffffff;
-  font-weight: 700;
-  transition: background-color 150ms ease, transform 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.finia-button-primary:hover:not(:disabled) {
-  background: #0e7490;
-  box-shadow: 0 5px 16px rgba(14, 116, 144, 0.2);
-}
-
-.finia-button-primary:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.finia-button-primary:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.finia-button-secondary {
-  border: 1px solid rgba(14, 116, 144, 0.18);
-  border-radius: 0.75rem;
-  background: rgba(14, 116, 144, 0.07);
-  color: #0d5c75;
-  font-weight: 700;
-  transition: background-color 150ms ease, border-color 150ms ease;
-}
-
-.finia-button-secondary:hover:not(:disabled) {
-  border-color: rgba(14, 116, 144, 0.3);
-  background: rgba(14, 116, 144, 0.12);
-}
-
-.finia-number {
-  font-variant-numeric: tabular-nums;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }

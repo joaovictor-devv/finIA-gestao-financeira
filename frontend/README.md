@@ -74,3 +74,14 @@ O frontend segue o conceito **Deep Ocean Tide**:
 - layout responsivo para desktop e celular.
 
 Todos os valores monetários exibidos ao usuário usam Real brasileiro (`R$`).
+
+## Jornadas automatizadas
+
+```bash
+npx playwright install chromium --only-shell
+npm test
+```
+
+Os testes cobrem edição de metas, rejeição de meta inviável, progresso vazio, eventos personalizados, descarte de resultado obsoleto, falhas da IA e navegação nas seis telas em desktop/mobile. As respostas da API são controladas nos testes de navegador. As fontes são empacotadas localmente, sem depender do Google Fonts em tempo de execução.
+
+Para executar frontend, API e MySQL juntos, consulte `../docs/EXECUTAR.md`.

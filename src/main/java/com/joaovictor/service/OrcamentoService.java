@@ -86,6 +86,7 @@ public class OrcamentoService {
     }
 
     private void validarNaoNegativo(BigDecimal valor, String mensagem) {
+        ValoresMonetarios.validar(valor);
         if (valor == null || valor.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(mensagem);
         }

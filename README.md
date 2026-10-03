@@ -399,3 +399,14 @@ Perfil
 O objetivo do produto pode ser resumido como:
 
 > Você informa o básico. O FinIA calcula, simula e explica.
+
+## Entrega de conclusão — 28/09/2026
+
+A interface agora permite editar metas com prévia de viabilidade, combinar os cinco tipos de eventos em cenários personalizados e recuperar perguntas após falhas da IA. Valores monetários têm limite e precisão coerentes com o banco. Resultados anteriores são limpos quando os parâmetros mudam. Fontes e ícones são servidos pelo próprio frontend.
+
+Novo endpoint sem persistência: `POST /metas/{id}/simular`, com o mesmo corpo de `PUT /metas/{id}`. A prévia de edição exclui o compromisso da própria meta; salvar revalida os dados no backend.
+
+- [Como executar e apresentar](docs/EXECUTAR.md)
+- [Funcionalidades, feedback e limites da validação](docs/ENTREGA.md)
+
+Frontend: `npm test` executa jornadas em Chromium nos tamanhos desktop e mobile. Backend: `mvn verify` inclui a jornada HTTP com repositórios JDBC e H2 isolado. Os testes existentes de MySQL no CI continuam necessários.
