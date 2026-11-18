@@ -197,3 +197,53 @@ test('dashboard apresenta déficit e valores grandes sem perder ações no celul
   await expect(page.getByRole('button', { name: 'Verificar gasto' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+
+test('compara impacto real do cenário com orçamento sem mudanças em cada mês', async ({ page }) => {
+  let chamadas = 0;
+  await page.route('**/simulacoes', async route => {
+    const payload = route.request().postDataJSON();
+    chamadas++;
+    const eReferencia = payload.nomeCenario === 'Sem mudanças';
+    const saldos = eReferencia ? [1800, 2100, 2400] : [1800, 1600, 1900];
+    await route.fulfill({ json: {
+      meses: 3,
+      saldoInicial: 1500,
+      saldoFinalProjetado: saldos[2],
+      variacaoSaldo: saldos[2] - 1500,
+      classificacaoFinal: 'SAUDAVEL',
+      mensagem: 'Projeção calculada.',
+      situacaoAtual: capacidade,
+      totalReservaPlanejada: 0,
+      totalAportadoMetas: 0,
+      evolucaoMensal: saldos.map((saldo, index) => ({
+        indiceMes: index + 1,
+        mesReferencia: ['2026-12', '2027-01', '2027-02'][index],
+        saldoDisponivelProjetado: saldo,
+        margemMensal: saldo - (index === 0 ? 1500 : saldos[index - 1]),
+        rendaMensal: 3000,
+        gastosMensais: 1200,
+        eventosAplicados: [],
+      })),
+      projecoesMetas: [],
+    } });
+  });
+
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3m', exact: true }).click();
+  await page.getByRole('button', { name: 'Gasto inesperado', exact: false }).click();
+  await page.getByRole('textbox', { name: 'Qual seria o valor do imprevisto?' }).fill('500');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+
+  await expect(page.getByRole('img', { name: 'Gráfico de evolução do saldo' })).toBeVisible();
+  await expect(page.getByText('Saldo sem mudanças', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('impacto-cenario')).toContainText('-R$ 500,00');
+
+  await page.getByLabel('Mês para detalhar').selectOption('1');
+  await expect(page.getByTestId('impacto-cenario')).toContainText('R$ 0,00');
+  await page.getByLabel('Mês para detalhar').selectOption('2');
+  await expect(page.getByTestId('impacto-cenario')).toContainText('-R$ 500,00');
+
+  expect(chamadas).toBe(2);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
