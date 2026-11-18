@@ -49,4 +49,4 @@ Em `/simulacoes`, cada opção de decisão exibe somente os indicadores pertinen
 
 ### Projeção das metas nas Simulações
 
-Os cartões de meta exibem **o valor projetado ao final do período**, o percentual do objetivo alcançado e quanto ainda faltaria. A comparação com o planejamento atual aparece **somente quando existir diferença de valor**, sem repetir números idênticos ou a frase gerada de avanço. O valor já registrado pelo usuário não muda automaticamente quando a simulação é executada: é atualizado pela ação **Atualizar progresso** na página Metas; as projeções são condicionais aos aportes planejados.
+Os cartões de meta exibem **o valor projetado ao final do período**, o percentual do objetivo alcançado e quanto ainda faltaria. A comparação com o planejamento atual aparece **somente quando existir mudança no valor projetado ou na data prevista de conclusão**, sem repetir números idênticos ou a frase gerada de avanço. O valor já registrado pelo usuário não muda automaticamente quando a simulação é executada: é atualizado pela ação **Atualizar progresso** na página Metas; as projeções são condicionais aos aportes planejados.
