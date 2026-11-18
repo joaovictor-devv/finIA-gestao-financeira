@@ -3,6 +3,7 @@ import Icon from "../components/Icon";
 import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
+import GraficoSaldoComparativo from "../components/GraficoSaldoComparativo";
 import StatusBadge from "../components/StatusBadge";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
@@ -30,6 +31,7 @@ function Simulacoes() {
   const [gastosPersonalizados, setGastosPersonalizados] = useState("");
   const [metaId, setMetaId] = useState("");
   const [resultado, setResultado] = useState(null);
+  const [comparacao, setComparacao] = useState(null);
   const [ultimoPayload, setUltimoPayload] = useState(null);
   const [explicacaoIA, setExplicacaoIA] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -66,6 +68,7 @@ function Simulacoes() {
 
   function limparResultado() {
     setResultado(null);
+    setComparacao(null);
     setUltimoPayload(null);
     setExplicacaoIA("");
     setErro("");
@@ -75,6 +78,7 @@ function Simulacoes() {
     setEventos([]);
     setCenario(novoCenario);
     setResultado(null);
+    setComparacao(null);
     setUltimoPayload(null);
     setExplicacaoIA("");
     setErro("");
@@ -167,8 +171,21 @@ function Simulacoes() {
     const payload = montarPayload();
     setSimulando(true);
     try {
-      const response = await api.post("/simulacoes", payload);
-      setResultado(response.data);
+      // O mesmo motor financeiro calcula os dois caminhos, com saldo e orçamento
+      // de partida idênticos. A referência não salva nem altera dados reais.
+      const [cenarioCalculado, referenciaCalculada] = await Promise.allSettled([
+        api.post("/simulacoes", payload),
+        api.post("/simulacoes", {
+          nomeCenario: "Sem mudanças",
+          meses: payload.meses,
+          eventos: [],
+        }),
+      ]);
+      if (cenarioCalculado.status === "rejected") throw cenarioCalculado.reason;
+      setResultado(cenarioCalculado.value.data);
+      setComparacao(referenciaCalculada.status === "fulfilled"
+        ? referenciaCalculada.value.data.evolucaoMensal || null
+        : null);
       setUltimoPayload(payload);
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível fazer essa simulação.");
@@ -402,7 +419,12 @@ function Simulacoes() {
               </div>
               <span className="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-800">PROJEÇÃO</span>
             </div>
-            <MiniGrafico dados={resultado.evolucaoMensal || []} />
+            <GraficoSaldoComparativo
+              key={JSON.stringify(ultimoPayload)}
+              dados={resultado.evolucaoMensal || []}
+              comparacao={comparacao}
+              saldoInicial={resultado.saldoInicial}
+            />
             <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
               {(resultado.evolucaoMensal || []).map((mes) => (
                 <article key={mes.indiceMes} className="min-w-44 rounded-xl border border-slate-200 bg-white p-4">
@@ -525,43 +547,6 @@ function Comparacao({ label, atual, depois, inverter = false }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function MiniGrafico({ dados }) {
-  if (!dados.length) return null;
-  const valores = dados.map((item) => Number(item.saldoDisponivelProjetado) || 0);
-  const min = Math.min(0, ...valores);
-  const max = Math.max(0, ...valores);
-  const amplitude = Math.max(1, max - min);
-  const coordenadas = valores.map((valor, index) => ({
-    x: dados.length === 1 ? 300 : 12 + index / (dados.length - 1) * 576,
-    y: 176 - (valor - min) / amplitude * 156,
-  }));
-  const pontos = coordenadas.map(({ x, y }) => x + "," + y).join(" ");
-  const base = 176 - (0 - min) / amplitude * 156;
-  const area = coordenadas[0].x + "," + base + " " + pontos + " " + coordenadas.at(-1).x + "," + base;
-
-  return (
-    <figure className="finia-chart">
-      <figcaption className="finia-chart-scale">
-        <span>Saldo projetado · R$</span><span>Escala: {formatarMoeda(min)} a {formatarMoeda(max)}</span>
-      </figcaption>
-      <svg role="img" viewBox="0 0 600 200" className="h-44 w-full sm:h-52" preserveAspectRatio="none" aria-label="Gráfico de evolução do saldo">
-        <title>Projeção de saldo disponível</title>
-        <desc>{"De " + formatarMoeda(valores[0]) + " no primeiro mês a " + formatarMoeda(valores.at(-1)) + " no último. Os valores de cada mês aparecem abaixo."}</desc>
-        {[20, 98, 176].map((y) => <line key={y} x1="12" x2="588" y1={y} y2={y} stroke="#e5ecf2" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
-        <line x1="12" x2="588" y1={base} y2={base} stroke="#b4c8d7" vectorEffect="non-scaling-stroke" />
-        <polygon points={area} fill="#0E7490" fillOpacity="0.06" />
-        <polyline points={pontos} fill="none" stroke="#0E7490" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {coordenadas.map(({ x, y }, index) => (
-          <circle key={index} cx={x} cy={y} r="3.5" fill="#0E7490" stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke">
-            <title>{formatarMesReferencia(dados[index].mesReferencia) + ": " + formatarMoeda(valores[index])}</title>
-          </circle>
-        ))}
-      </svg>
-      <div className="finia-chart-dates"><span>{formatarMesReferencia(dados[0].mesReferencia)}</span>{dados.length > 1 && <span>{formatarMesReferencia(dados.at(-1).mesReferencia)}</span>}</div>
-    </figure>
   );
 }
 
