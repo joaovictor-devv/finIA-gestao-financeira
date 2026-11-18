@@ -392,7 +392,7 @@ test('metas e planejamento continuam explicativos sem gráficos', async ({ page 
   await expect(page.getByRole('heading', { name: 'O que acontecerá com suas metas?' })).toBeVisible();
   await expect(page.getByText('40% do objetivo')).toBeVisible();
   await expect(page.getByText('R$ 1.200,00', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Ainda faltaria')).toBeVisible();
+  await expect(page.getByTestId('resumo-meta').first().getByText('Ainda faltaria').first()).toBeVisible();
   await expect(page.getByTestId('diferenca-meta')).toContainText('R$ 100,00');
   await expect(page.getByTestId('mudancas-relevantes')).toHaveCount(0);
   await expect(page.getByRole('table')).toHaveCount(0);
