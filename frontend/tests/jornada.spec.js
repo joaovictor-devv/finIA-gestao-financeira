@@ -232,7 +232,7 @@ test('compara impacto real do cenário com orçamento sem mudanças em cada mês
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3m', exact: true }).click();
   await page.getByRole('button', { name: 'Gasto inesperado', exact: false }).click();
-  await page.getByRole('textbox', { name: 'Qual seria o valor do imprevisto?' }).fill('500');
+  await page.getByRole('spinbutton', { name: 'Qual seria o valor do imprevisto?' }).fill('500');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
   await expect(page.getByRole('img', { name: 'Gráfico de evolução do saldo' })).toBeVisible();
