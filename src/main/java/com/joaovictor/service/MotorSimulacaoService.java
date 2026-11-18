@@ -5,6 +5,7 @@ import com.joaovictor.dto.SimulacaoFinanceiraRequest;
 import com.joaovictor.model.CapacidadeFinanceira;
 import com.joaovictor.model.Meta;
 import com.joaovictor.model.ProjecaoMensal;
+import com.joaovictor.model.ProjecaoMetaMensal;
 import com.joaovictor.model.ProjecaoMeta;
 import com.joaovictor.model.ResultadoSimulacaoFinanceira;
 import org.springframework.stereotype.Service;
@@ -154,7 +155,13 @@ public class MotorSimulacaoService {
                     margemMensal,
                     saldo,
                     classificacao,
-                    List.copyOf(eventosAplicados)
+                    List.copyOf(eventosAplicados),
+                    estadosMetas.stream().map(estado -> new ProjecaoMetaMensal(
+                            estado.meta.getId(),
+                            estado.meta.getNome(),
+                            estado.valorProjetado,
+                            estado.meta.getValorAlvo()
+                    )).toList()
             ));
 
             totalAportadoMetas = totalAportadoMetas.add(aporteBaseMes).add(aporteExtraMes);
