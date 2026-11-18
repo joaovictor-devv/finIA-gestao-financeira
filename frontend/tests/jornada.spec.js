@@ -193,7 +193,8 @@ test('a simulação mostra risco por margem negativa, sem exibir saldo bancário
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByTestId('mudancas-relevantes')).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByText('O orçamento ficaria negativo em 3 de 3 meses.')).toBeVisible();
   await expect(page.getByText('Reserva planejada no período').first()).toBeVisible();
   await expect(page.getByText('Mensagem antiga sobre saldo não deve aparecer.')).toHaveCount(0);
@@ -301,7 +302,7 @@ test('sem reserva definida, recomenda planejamento sem dizer que a folga foi gua
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
   await expect(page.getByText('Neste cenário não há valor destinado à reserva', { exact: false })).toBeVisible();
-  await expect(page.getByText('A soma dos valores mensais disponíveis serve apenas à comparação', { exact: false })).toBeVisible();
+  await expect(page.getByText('Não representam depósitos confirmados nem rendimentos', { exact: false })).toBeVisible();
 });
 
 
@@ -391,7 +392,8 @@ test('metas e planejamento continuam explicativos sem gráficos', async ({ page 
   await expect(page.getByRole('heading', { name: 'Projeção de cada meta' })).toBeVisible();
   await expect(page.getByText('Progresso previsto: 40%')).toBeVisible();
   await expect(page.getByText('R$ 1.200,00', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByTestId('mudancas-relevantes')).toHaveCount(0);
+  await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByRole('img', { name: /Gráfico de/ })).toHaveCount(0);
 });
 
@@ -607,4 +609,84 @@ test('meta explica que prazo começa agora e aportes não podem duplicar a reser
   await page.goto('/metas');
   await expect(page.getByText('Prazo a partir de agora (meses)')).toBeVisible();
   await expect(page.getByText('não inclua o mesmo aporte mensal na reserva geral', { exact: false })).toBeVisible();
+});
+
+
+test('orçamento estável com R$ 1,27 livres não repete seis linhas e destaca risco real', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    await route.fulfill({ json: {
+      meses: 6, situacaoAtual: capacidade, totalReservaPlanejada: 1800,
+      totalAportadoMetas: 10192.38, evolucaoMensal: Array.from({ length: 6 }, (_, i) => ({
+        indiceMes: i + 1, mesReferencia: ['2026-12', '2027-01', '2027-02', '2027-03', '2027-04', '2027-05'][i],
+        rendaMensal: 3000, rendaExtraordinaria: 0, gastosMensais: 1000, gastoExtraordinario: 0,
+        reservaPlanejada: 300, aporteMetasBase: 1698.73, aporteExtraMetas: 0,
+        margemMensal: 1.27, eventosAplicados: []
+      })), projecoesMetas: []
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByTestId('mudancas-relevantes')).toHaveCount(0);
+  await expect(page.getByRole('table')).toHaveCount(0);
+  await expect(page.getByTestId('alerta-margem-pequena')).toContainText('R$ 1,27');
+  await expect(page.getByText('Menor valor disponível em um mês')).toBeVisible();
+  await expect(page.getByText('Soma dos valores mensais disponíveis')).toHaveCount(0);
+});
+
+test('mudança em um único mês destaca apenas o acontecimento e não todos os meses iguais', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const base = route.request().postDataJSON().nomeCenario === 'Sem mudanças';
+    await route.fulfill({ json: {
+      meses: 4, situacaoAtual: capacidade, totalReservaPlanejada: 1200,
+      totalAportadoMetas: 0, evolucaoMensal: [1, 2, 3, 4].map((i) => {
+        const custo = !base && i === 3 ? 400 : 0;
+        return {
+          indiceMes: i, mesReferencia: '2027-0' + i, rendaMensal: 3000,
+          gastosMensais: 1200, gastoExtraordinario: custo, reservaPlanejada: 300,
+          aporteMetasBase: 0, aporteExtraMetas: 0, margemMensal: 1500 - custo,
+          eventosAplicados: custo ? ['Despesa extraordinária prevista'] : [],
+        };
+      }), projecoesMetas: []
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Planejamento personalizado/ }).click();
+  await page.getByLabel('Período da simulação (meses)').fill('4');
+  // Cenário personalizado pode ter eventos únicos; configuramos pela interface.
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const marcos = page.getByTestId('mudancas-relevantes');
+  await expect(marcos).toBeVisible();
+  await expect(marcos.locator('ol > li')).toHaveCount(2);
+  await expect(marcos).toContainText('mar/27');
+  await expect(marcos).toContainText('abr/27');
+  await expect(marcos).not.toContainText('fev/27');
+  await expect(page.getByRole('table')).toHaveCount(0);
+});
+
+test('conclusão de meta vira marco mesmo com orçamento igual nos meses anteriores', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: 200,
+      evolucaoMensal: [1, 2, 3].map((i) => ({
+        indiceMes: i, mesReferencia: '2027-0' + i, rendaMensal: 3000,
+        gastosMensais: 1200, reservaPlanejada: 300,
+        aporteMetasBase: i === 1 ? 200 : 0, aporteExtraMetas: 0,
+        margemMensal: i === 1 ? 1300 : 1500
+      })),
+      projecoesMetas: [{
+        id: 1, nome: 'Notebook', valorAtual: 800, valorAlvo: 1000,
+        valorProjetado: 1000, progressoProjetadoPercentual: 100,
+        concluidaNoPeriodo: true, mesConclusaoReferencia: '2027-01',
+        impacto: 'Meta concluída no cenário'
+      }]
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const marcos = page.getByTestId('mudancas-relevantes');
+  await expect(marcos).toContainText('Meta Notebook: valor-alvo previsto para este mês');
+  await expect(marcos).toContainText('fev/27');
+  await expect(page.getByRole('table')).toHaveCount(0);
 });
