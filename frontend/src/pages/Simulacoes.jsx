@@ -410,7 +410,7 @@ function Simulacoes() {
         </fieldset></form>
 
         <section className="finia-card p-6 sm:p-8">
-          <h2 className="text-xl font-extrabold text-[#0A192F]">Resultado</h2>
+          <h2 className="text-xl font-extrabold text-[#0A192F]">Análise do cenário</h2>
           {!resultado ? (
             <div className="finia-empty mt-6 flex min-h-80 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6">
               <span className="material-symbols-outlined !text-[38px] text-slate-400">query_stats</span>
@@ -435,7 +435,7 @@ function Simulacoes() {
                 <Comparacao label="Aportes previstos às metas no período" atual={comparacao.totalAportadoMetas} depois={resultado.totalAportadoMetas} />
               </div>
             ) : <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">O cenário sem mudanças está indisponível. Os resultados da sua simulação continuam abaixo.</p>}
-            <p className="mt-4 text-xs leading-5 text-slate-500">Uma menor folga pode significar que você decidiu guardar mais. Compare também reserva, metas e meses com déficit antes de avaliar a decisão.</p>
+            <p className="mt-4 text-xs leading-5 text-slate-500">Menor disponibilidade pode ocorrer porque a reserva ou os aportes às metas aumentaram. Considere também os meses em déficit antes de decidir.</p>
           </section>
 
           <section className="finia-card mt-6 p-6 sm:p-8">
@@ -561,8 +561,8 @@ function ResultadoSimulacao({ resultado }) {
         <p className={"text-lg font-extrabold " + (alerta ? "text-amber-900" : "text-cyan-900")}>{titulo}</p>
         <p className="mt-2 text-sm leading-6 text-slate-700">
           {alerta
-            ? `A menor folga seria ${formatarMoeda(piorMes?.margemMensal)} em ${formatarMesReferencia(piorMes?.mesReferencia)}. Isso exige revisar renda, gastos ou quanto pretende guardar e aportar às metas.`
-            : `A menor folga mensal seria ${formatarMoeda(piorMes?.margemMensal)}. Essa folga não é automaticamente guardada.`}
+            ? `O menor valor disponível após compromissos seria ${formatarMoeda(piorMes?.margemMensal)} em ${formatarMesReferencia(piorMes?.mesReferencia)}. Isso exige revisar renda, gastos ou quanto pretende guardar e aportar às metas.`
+            : `O menor valor mensal disponível após compromissos seria ${formatarMoeda(piorMes?.margemMensal)}. Essa folga não é automaticamente guardada.`}
         </p>
         {evolucao.length > 0 && <p className="mt-2 text-xs font-semibold text-slate-600">{evolucao.length} meses analisados com as condições informadas.</p>}
       </div>
@@ -573,7 +573,7 @@ function ResultadoSimulacao({ resultado }) {
         <MiniInfo label="Aportes às metas no período" valor={formatarMoeda(aporte)} />
       </div>
       <p className="mt-3 text-xs leading-5 text-slate-500">
-        A folga acumulada é a soma das margens mensais, não dinheiro já economizado.
+        A soma dos valores mensais disponíveis serve apenas à comparação e não representa dinheiro efetivamente economizado.
         Reserva e aportes são destinações planejadas durante estes meses, sem incluir valores que você já tinha guardado.
       </p>
 
