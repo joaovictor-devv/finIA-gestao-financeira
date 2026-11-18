@@ -225,7 +225,8 @@ O motor calcula folga mensal = renda do mês (incluindo extras) menos gastos (in
 - folga mensal e seu comparativo com manter o orçamento atual;
 - total planejado para a reserva durante o período (não inclui dinheiro já guardado);
 - valores aportados às metas e progresso simulado de cada objetivo;
-- detalhamento mês a mês em tabela, com receitas, despesas, reserva, aportes às metas e valor disponível após compromissos, sem confundir projeção com saldo bancário.
+- **resumos específicos para cada decisão**: a compra pontual compara preço, valor livre antes e depois e eventual insuficiência; mudanças na renda destacam variação e meses com déficit; a reserva destaca quanto se pretende separar; aportes mostram a evolução da meta selecionada;
+- tabela mensal completa somente nos cenários **Manter o orçamento atual** e **Planejamento personalizado**, evitando repetir informações inalteradas nas decisões simples.
 
 **Importante:** folga livre não significa economia realizada; reserva e aportes são intenções de destinação, não comprovantes de depósito. Não existem aplicações financeiras cadastradas nem estimativas automáticas de rendimentos, juros ou inflação. O quadro de metas mostra valor atual, valor final previsto e percentual de avanço; os meses com déficit são destacados no diagnóstico do cenário. Se não houver metas cadastradas, os cálculos da reserva e do orçamento permanecem válidos. As simulações não alteram dados reais.
 
