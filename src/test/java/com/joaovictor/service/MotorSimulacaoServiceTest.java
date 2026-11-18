@@ -205,6 +205,40 @@ class MotorSimulacaoServiceTest {
     }
 
     @Test
+    void deveRetornarEvolucaoRealDeCadaMetaEmTodosOsMeses() {
+        Meta meta = meta(1, "Notebook", "2000", "200", 6, "alta");
+        SimulacaoFinanceiraRequest request = request(3);
+
+        ResultadoSimulacaoFinanceira resultado = service.simular(
+                request,
+                capacidade("2500", "1200", "300", "300", "1000"),
+                List.of(meta)
+        );
+
+        assertThat(resultado.getEvolucaoMensal()).hasSize(3);
+        assertThat(resultado.getEvolucaoMensal().get(0).getMetasProjetadas()).hasSize(1);
+        assertThat(resultado.getEvolucaoMensal().get(0).getMetasProjetadas().get(0).getValorProjetado())
+                .isEqualByComparingTo("500");
+        assertThat(resultado.getEvolucaoMensal().get(1).getMetasProjetadas().get(0).getValorProjetado())
+                .isEqualByComparingTo("800");
+        assertThat(resultado.getEvolucaoMensal().get(2).getMetasProjetadas().get(0).getValorProjetado())
+                .isEqualByComparingTo("1100");
+        assertThat(meta.getValorInicial()).isEqualByComparingTo("200");
+    }
+
+    @Test
+    void semMetasRetornaSerieDeProgressoVazia() {
+        ResultadoSimulacaoFinanceira resultado = service.simular(
+                request(2),
+                capacidade("2500", "1200", "300", "0", "1000"),
+                List.of()
+        );
+
+        assertThat(resultado.getEvolucaoMensal())
+                .allSatisfy(mes -> assertThat(mes.getMetasProjetadas()).isEmpty());
+    }
+
+    @Test
     void aporteExtraPodeConcluirMetaEParaDeConsumirSaldoDepois() {
         Meta meta = meta(1, "Curso", "500", "0", 5, "alta");
         SimulacaoFinanceiraRequest request = request(3);
