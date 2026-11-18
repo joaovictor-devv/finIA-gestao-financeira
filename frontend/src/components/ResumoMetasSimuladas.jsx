@@ -23,6 +23,26 @@ function CartaoMeta({ meta, referencia, meses }) {
     ? previsto - valorNumerico(planoAtual.valorProjetado)
     : 0;
   const mudaPlano = planoAtual && Math.abs(diferenca) >= 0.005;
+  // Mesmo que o valor final seja igual (meta atingiu o teto), a data de
+  // conclusão pode ter mudado: isso é informação relevante para a decisão.
+  const conclusaoBase = planoAtual?.mesConclusaoReferencia;
+  const conclusaoNova = meta.mesConclusaoReferencia;
+  let diferencaPrazo = "";
+  if (planoAtual && String(conclusaoNova || "") !== String(conclusaoBase || "")) {
+    if (conclusaoNova && conclusaoBase) {
+      diferencaPrazo = conclusaoNova < conclusaoBase
+        ? "A conclusão seria antecipada de " + formatarMesReferencia(conclusaoBase)
+          + " para " + formatarMesReferencia(conclusaoNova) + "."
+        : "A conclusão passaria de " + formatarMesReferencia(conclusaoBase)
+          + " para " + formatarMesReferencia(conclusaoNova) + ".";
+    } else if (conclusaoNova && !conclusaoBase) {
+      diferencaPrazo = "Esta mudança permitiria concluir a meta em "
+        + formatarMesReferencia(conclusaoNova) + ", dentro do período analisado.";
+    } else if (!conclusaoNova && conclusaoBase) {
+      diferencaPrazo = "A meta deixaria de ser concluída dentro do período analisado; "
+        + "o planejamento atual previa " + formatarMesReferencia(conclusaoBase) + ".";
+    }
+  }
 
   const concluidaAntes = registrado >= alvo;
   const concluidaNoPeriodo = meta.concluidaNoPeriodo && !concluidaAntes;
@@ -90,6 +110,11 @@ function CartaoMeta({ meta, referencia, meses }) {
           Comparado ao planejamento atual, esta decisão
           {diferenca > 0 ? " aumentaria " : " reduziria "}
           o valor previsto para a meta em <strong>{formatarMoeda(Math.abs(diferenca))}</strong>.
+        </p>
+      )}
+      {diferencaPrazo && (
+        <p data-testid="diferenca-prazo-meta" className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700">
+          {diferencaPrazo}
         </p>
       )}
     </article>
