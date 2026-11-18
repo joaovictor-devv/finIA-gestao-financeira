@@ -73,4 +73,4 @@ Os testes unitários e integrados da API usam H2 isolado em modo MySQL. O CI tam
 5. Edite a meta, confira a prévia e salve. Teste também um valor inviável.
 6. Em Simulações, escolha **Compra pontual**: teste uma compra que caiba no valor disponível do próximo mês e outra que exceda esse valor. O resultado deve informar quanto restaria ou faltaria **naquele mês**, sem repetir os compromissos inalterados. Depois teste **Alterar reserva mensal** sem metas e **Planejamento personalizado** para conferir a tabela mensal; volte ao perfil e confirme que os dados reais não mudaram.
 7. Complete o progresso da meta: seu compromisso mensal deixa de pesar no orçamento.
-8. Sem chave da IA, mostre que todo o motor continua funcionando. Com chave, confirme a qualidade das explicações antes da apresentação.
+8. Sem chave da IA, mostre que todo o motor continua funcionando. Com chave, envie uma pergunta ao chatbot e depois outra de continuação: a FinIA usa até seis mensagens recentes como contexto, sem substituir dados calculados pelo backend. Use **Limpar conversa** para reiniciar o contexto.
