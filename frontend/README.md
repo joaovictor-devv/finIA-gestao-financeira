@@ -50,3 +50,10 @@ Em `/simulacoes`, cada opção de decisão exibe somente os indicadores pertinen
 ### Projeção das metas nas Simulações
 
 Os cartões de meta exibem **o valor projetado ao final do período**, o percentual do objetivo alcançado e quanto ainda faltaria. A comparação com o planejamento atual aparece **somente quando existir mudança no valor projetado ou na data prevista de conclusão**, sem repetir números idênticos ou a frase gerada de avanço. O valor já registrado pelo usuário não muda automaticamente quando a simulação é executada: é atualizado pela ação **Atualizar progresso** na página Metas; as projeções são condicionais aos aportes planejados.
+
+### Ajustes financeiros nas Simulações
+
+A opção **Aporte adicional para uma meta** mostra o aporte já calculado para atender o prazo, esclarecendo que o usuário digita somente a quantia **extra**. Exibe o impacto na disponibilidade mensal e não transfere excedentes automaticamente para outras metas.
+
+Em **Redução de renda**, é possível simular a adaptação dos aportes ao dinheiro restante depois de despesas e reserva, com prioridade alta → média → baixa. Ao desativar a opção, são mantidos os aportes atuais para comparar o risco. Em **Aumento de renda**, um campo opcional permite destinar parte do aumento a uma meta; sem essa decisão, os aportes e os prazos continuam iguais. O progresso aparece em até três marcos explicativos por objetivo, e não em um gráfico ou tabela repetitiva.
+
