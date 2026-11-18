@@ -178,7 +178,7 @@ function Metas() {
       <PageHeader
         pergunta="Seus objetivos"
         titulo="Metas"
-        descricao="Dê forma aos seus planos. Encontre um ritmo que cabe no seu mês."
+        descricao="Defina seus objetivos e avalie quanto precisará separar por mês, considerando os compromissos existentes."
         acao={<button type="button" disabled={ocupado || criando || simulando} onClick={() => {
           cancelarEdicao();
           const formulario = document.getElementById("form-meta");
@@ -195,7 +195,7 @@ function Metas() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-extrabold text-[#0A192F]">Suas metas</h2>
-            <p className="mt-1 text-sm text-slate-500">Acompanhe o que já guardou e o próximo passo.</p>
+            <p className="mt-1 text-sm text-slate-500">Acompanhe os valores registrados e os aportes mensais necessários para cada objetivo.</p>
           </div>
           <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
             {metas.length} {metas.length === 1 ? "meta" : "metas"}
@@ -268,7 +268,7 @@ function Metas() {
               required
             />
             <CurrencyInput
-              label="Quanto você já guardou?"
+              label="Valor já separado para esta meta"
               value={form.valorInicial}
               onChange={(event) => alterar("valorInicial", event.target.value)}
               placeholder="1.000,00"
@@ -276,7 +276,7 @@ function Metas() {
             />
 
             <label>
-              <span className="text-sm font-bold text-[#0A192F]">Em quantos meses?</span>
+              <span className="text-sm font-bold text-[#0A192F]">Prazo a partir de agora (meses)</span>
               <input
                 type="number"
                 min="1"
@@ -316,6 +316,12 @@ function Metas() {
             </label>
           </div>
 
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-xs leading-6 text-slate-600">
+            O prazo começa a ser contado a partir do mês atual. O valor já separado é informado por você e não é movimentado automaticamente.
+            Para evitar dupla contagem, não inclua o mesmo aporte mensal na reserva geral e nesta meta.
+            A prioridade organiza os objetivos, mas não reduz o aporte necessário nem cria dinheiro disponível.
+          </p>
+
           <button
             type="submit"
             disabled={simulando}
@@ -333,7 +339,7 @@ function Metas() {
             <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center">
               <span className="material-symbols-outlined !text-[32px] text-slate-400">calculate</span>
               <p className="mt-3 font-bold text-slate-700">Preencha a meta e veja se ela cabe.</p>
-              <p className="mt-1 text-sm leading-6 text-slate-500">O cálculo considera seu orçamento e todas as metas já cadastradas.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">O cálculo considera renda, despesas, reserva planejada e os aportes das outras metas.</p>
             </div>
           ) : (
             <ResultadoMeta editando={Boolean(editandoId)} analise={analise} criando={criando} onCriar={criar} />
@@ -361,13 +367,13 @@ function MetaCard({ item, onEditar, editando, valorProgresso, onAbrirProgresso, 
       </div>
       <div className="finia-goal-card-body">
         <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
-          <div><p className="text-xs text-slate-500">Seu objetivo</p><p className="finia-number mt-1 text-3xl font-extrabold">{formatarMoeda(meta.valorAlvo)}</p></div>
+          <div><p className="text-xs text-slate-500">Valor total da meta</p><p className="finia-number mt-1 text-3xl font-extrabold">{formatarMoeda(meta.valorAlvo)}</p></div>
           <StatusBadge valor={analise.classificacao} />
         </div>
         <GoalProgress nome={meta.nome} atual={meta.valorInicial} alvo={meta.valorAlvo} />
         <div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-5">
-          <div><p className="text-xs leading-5 text-slate-500">Falta guardar</p><p className="finia-number mt-1 text-sm font-extrabold">{formatarMoeda(analise.valorRestante)}</p></div>
-          <div><p className="text-xs leading-5 text-slate-500">Por mês, para chegar lá</p><p className="finia-number mt-1 text-sm font-extrabold text-cyan-800">{formatarMoeda(analise.valorMensalNecessario)}</p></div>
+          <div><p className="text-xs leading-5 text-slate-500">Valor que falta separar</p><p className="finia-number mt-1 text-sm font-extrabold">{formatarMoeda(analise.valorRestante)}</p></div>
+          <div><p className="text-xs leading-5 text-slate-500">Aporte mensal necessário</p><p className="finia-number mt-1 text-sm font-extrabold text-cyan-800">{formatarMoeda(analise.valorMensalNecessario)}</p></div>
         </div>
         {meta.descricao && <p className="mt-4 text-sm leading-6 text-slate-600">{meta.descricao}</p>}
         <div className="finia-goal-card-actions">
@@ -400,7 +406,7 @@ function ResultadoMeta({ editando, analise, criando, onCriar }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <MiniInfo label="Falta guardar" valor={formatarMoeda(analise.valorRestante)} />
+        <MiniInfo label="Valor que falta separar" valor={formatarMoeda(analise.valorRestante)} />
         <MiniInfo label="Precisa guardar por mês" valor={formatarMoeda(analise.valorMensalNecessario)} destaque />
         <MiniInfo label="Hoje existe disponível" valor={formatarMoeda(analise.margemDisponivelParaMeta)} />
         <MiniInfo label="Outras metas já usam" valor={formatarMoeda(analise.comprometimentoOutrasMetas)} />
