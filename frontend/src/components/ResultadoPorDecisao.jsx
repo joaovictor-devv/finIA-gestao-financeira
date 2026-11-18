@@ -182,7 +182,7 @@ function AvaliacaoAporte({ resultado, comparacao, metaId, metaOriginal, aporteEx
   </div>;
 }
 
-export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId, metaOriginal, aporteExtra, ajusteAportes = false }) {
+export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId, metaOriginal, aporteExtra }) {
   if (!resultado) return null;
   if (cenario === "compra" || cenario === "imprevisto") {
     return <AvaliacaoDespesa cenario={cenario} resultado={resultado} comparacao={comparacao}
