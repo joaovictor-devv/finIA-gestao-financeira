@@ -63,7 +63,9 @@ function Simulacoes() {
         setGastosPersonalizados(String(capacidadeResponse.data.gastosMensais ?? ""));
         setReservaPersonalizada(String(capacidadeResponse.data.reservaPlanejada ?? ""));
         if (metasResponse.data?.length) {
-          setMetaId(String(metasResponse.data[0].id));
+          const primeiraPendente = metasResponse.data.find(
+            (m) => numero(m.valorAlvo) > numero(m.valorInicial));
+          setMetaId(String((primeiraPendente || metasResponse.data[0]).id));
         }
       } catch (error) {
         setErro(error.response?.data?.mensagem || "Configure seu perfil e orçamento antes de criar uma simulação.");
@@ -528,6 +530,8 @@ function Simulacoes() {
                 mesEvento={ultimoPayload?.eventos?.[0]?.mes || 1}
                 metaId={ultimoPayload?.metaPrioritariaId}
                 ajusteAportes={Boolean(ultimoPayload?.ajustarAportesAoOrcamento)}
+                metaOriginal={metas.find((meta) => String(meta.id) === String(ultimoPayload?.metaPrioritariaId))}
+                aporteExtra={ultimoPayload?.aporteExtraMetasMensal}
               />
             )
           )}
