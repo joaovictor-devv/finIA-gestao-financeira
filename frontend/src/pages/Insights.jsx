@@ -71,7 +71,7 @@ function Insights() {
     try {
       const response = await api.post("/ia/perguntar", {
         pergunta: texto,
-        historico: anteriores.slice(-6),
+        historico: anteriores.slice(-6).map(({ tipo, texto: mensagem }) => ({ tipo, texto: mensagem.slice(0, 2000) })),
       });
       atualizarConversa([...mensagensAtuais.current, { tipo: "finia", texto: response.data.resposta }]);
     } catch (error) {
