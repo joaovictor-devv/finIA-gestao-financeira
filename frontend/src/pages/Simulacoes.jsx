@@ -4,6 +4,7 @@ import Icon from "../components/Icon";
 import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import ResultadoPorDecisao from "../components/ResultadoPorDecisao";
+import MudancasRelevantes from "../components/MudancasRelevantes";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
@@ -449,59 +450,7 @@ function Simulacoes() {
             <p className="mt-4 text-xs leading-5 text-slate-500">Menor disponibilidade pode ocorrer porque a reserva ou os aportes às metas aumentaram. Considere também os meses em déficit antes de decidir.</p>
           </section>}
 
-          {cenarioCompleto && <section className="finia-card mt-6 p-6 sm:p-8">
-            <h2 className="text-xl font-extrabold text-[#0A192F]">Detalhamento mensal da simulação</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Confira quanto seria recebido, gasto e destinado à reserva ou às metas em cada mês.
-              Valores negativos na última coluna indicam compromissos superiores à renda prevista.
-            </p>
-            <div className="mt-5 max-h-[440px] overflow-auto rounded-xl border border-slate-200" tabIndex={0}
-              aria-label="Tabela mensal da simulação, com rolagem quando necessário">
-              <table className="w-full min-w-[720px] border-collapse text-left text-xs sm:text-sm">
-                <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700">
-                  <tr>
-                    <th scope="col" className="px-4 py-3">Mês</th>
-                    <th scope="col" className="px-3 py-3 text-right">Receitas</th>
-                    <th scope="col" className="px-3 py-3 text-right">Despesas</th>
-                    <th scope="col" className="px-3 py-3 text-right">Reserva prevista</th>
-                    <th scope="col" className="px-3 py-3 text-right">Aportes às metas</th>
-                    <th scope="col" className="px-4 py-3 text-right">Disponível após compromissos</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(resultado.evolucaoMensal || []).map((mes) => {
-                    const renda = numero(mes.rendaMensal) + numero(mes.rendaExtraordinaria);
-                    const despesas = numero(mes.gastosMensais) + numero(mes.gastoExtraordinario);
-                    const aportes = numero(mes.aporteMetasBase) + numero(mes.aporteExtraMetas);
-                    const disponivel = numero(mes.margemMensal);
-                    return (
-                      <tr key={mes.indiceMes} className="bg-white even:bg-slate-50">
-                        <th scope="row" className="px-4 py-3 font-bold text-slate-800">
-                          {formatarMesReferencia(mes.mesReferencia)}
-                          {mes.eventosAplicados?.length > 0 && (
-                            <span className="mt-1 block max-w-52 text-[11px] font-normal leading-4 text-slate-600">
-                              {mes.eventosAplicados.join("; ")}
-                            </span>
-                          )}
-                        </th>
-                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(renda)}</td>
-                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(despesas)}</td>
-                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(mes.reservaPlanejada)}</td>
-                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(aportes)}</td>
-                        <td className={"finia-number whitespace-nowrap px-4 py-3 text-right font-bold " + (disponivel < 0 ? "text-red-700" : "text-cyan-800")}>
-                          {formatarMoeda(disponivel)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500">
-              Reservas e aportes representam valores planejados, não depósitos efetivados.
-              A projeção não inclui rendimento de investimentos, juros ou inflação.
-            </p>
-          </section>}
+          {cenarioCompleto && <MudancasRelevantes resultado={resultado} comparacao={comparacao} />}
 
           {cenarioCompleto && resultado.projecoesMetas?.length > 0 && (
             <section className="finia-card mt-6 p-6 sm:p-8">
@@ -573,7 +522,12 @@ function ResultadoSimulacao({ resultado }) {
   const comDeficit = evolucao.filter((mes) => numero(mes.margemMensal) < 0);
   const piorMes = evolucao.reduce((pior, mes) =>
     pior === null || numero(mes.margemMensal) < numero(pior.margemMensal) ? mes : pior, null);
-  const totalMargens = evolucao.reduce((soma, mes) => soma + numero(mes.margemMensal), 0);
+  const margemPiorMes = numero(piorMes?.margemMensal);
+  const rendaPiorMes = numero(piorMes?.rendaMensal) + numero(piorMes?.rendaExtraordinaria);
+  // Indicador informativo de pouco espaço para imprevistos, não uma regra universal de finanças.
+  const margemMuitoPequena = margemPiorMes > 0
+    && rendaPiorMes > 0
+    && margemPiorMes < rendaPiorMes * 0.05;
   const reserva = numero(resultado.totalReservaPlanejada);
   const aporte = numero(resultado.totalAportadoMetas);
   const temMetas = (resultado.projecoesMetas || []).length > 0;
@@ -596,13 +550,20 @@ function ResultadoSimulacao({ resultado }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <MiniInfo label="Soma dos valores mensais disponíveis" valor={formatarMoeda(totalMargens)} destaque />
+        <MiniInfo label="Menor valor disponível em um mês" valor={formatarMoeda(margemPiorMes)} destaque />
         <MiniInfo label="Reserva planejada no período" valor={formatarMoeda(reserva)} />
-        <MiniInfo label="Aportes às metas no período" valor={formatarMoeda(aporte)} />
+        <MiniInfo label="Aportes previstos às metas" valor={formatarMoeda(aporte)} />
       </div>
+      {margemMuitoPequena && (
+        <p data-testid="alerta-margem-pequena" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          Atenção: a menor disponibilidade mensal é de apenas {formatarMoeda(margemPiorMes)},
+          menos de 5% da receita daquele mês. Uma pequena despesa imprevista pode ultrapassar
+          o valor livre e exigir ajustes na reserva ou nas metas.
+        </p>
+      )}
       <p className="mt-3 text-xs leading-5 text-slate-500">
-        A soma dos valores mensais disponíveis serve apenas à comparação e não representa dinheiro efetivamente economizado.
-        Reserva e aportes são destinações planejadas durante estes meses, sem incluir valores que você já tinha guardado.
+        Reserva e aportes são intenções de guardar durante o período, sem incluir os valores já guardados.
+        Não representam depósitos confirmados nem rendimentos de investimentos.
       </p>
 
       {!temMetas && <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
