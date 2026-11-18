@@ -74,7 +74,7 @@ test('limpa resultado ao mudar período e envia eventos personalizados', async (
     } });
   });
   await page.goto('/simulacoes');
-  await page.getByRole('button', { name: /Cenário personalizado/ }).click();
+  await page.getByRole('button', { name: /Planejamento personalizado/ }).click();
   await page.getByRole('button', { name: 'Adicionar evento' }).click();
   await page.getByLabel('Valor do evento').fill('500');
   await page.getByLabel('Mês do evento').fill('2');
@@ -280,7 +280,7 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
   expect(payloadSimulado.reservaMensal).toBe(500);
-  await expect(page.getByText('Você não tem metas cadastradas.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Você não possui metas cadastradas.', { exact: false })).toBeVisible();
   await expect(page.getByText('R$ 1.500,00', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Reserva planejada' }).click();
   await expect(page.getByTestId('impacto-cenario')).toContainText('+R$ 1.500,00');
