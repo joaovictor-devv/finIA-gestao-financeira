@@ -382,7 +382,7 @@ function MetaCard({ item, onEditar, editando, valorProgresso, onAbrirProgresso, 
         </div>
         {editando && (
           <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-            <label htmlFor={"progresso-" + meta.id} className="text-sm font-bold">Quanto já está guardado agora?</label>
+            <label htmlFor={"progresso-" + meta.id} className="text-sm font-bold">Valor atualmente separado para esta meta</label>
             <div className="mt-3 flex gap-2">
               <input id={"progresso-" + meta.id} type="number" min="0" step="0.01" aria-label="Valor já guardado"
                 max={meta.valorAlvo} value={valorProgresso} onChange={(event) => onChangeProgresso(event.target.value)}
@@ -408,16 +408,16 @@ function ResultadoMeta({ editando, analise, criando, onCriar }) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <MiniInfo label="Valor que falta separar" valor={formatarMoeda(analise.valorRestante)} />
         <MiniInfo label="Precisa guardar por mês" valor={formatarMoeda(analise.valorMensalNecessario)} destaque />
-        <MiniInfo label="Hoje existe disponível" valor={formatarMoeda(analise.margemDisponivelParaMeta)} />
-        <MiniInfo label="Outras metas já usam" valor={formatarMoeda(analise.comprometimentoOutrasMetas)} />
+        <MiniInfo label="Disponível por mês para esta meta" valor={formatarMoeda(analise.margemDisponivelParaMeta)} />
+        <MiniInfo label="Aportes mensais das outras metas" valor={formatarMoeda(analise.comprometimentoOutrasMetas)} />
       </div>
 
       {analise.viavel ? (
         <div className={`mt-5 rounded-2xl border p-5 ${analise.classificacao === "VIAVEL_COM_ATENCAO" ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
           <p className="font-extrabold text-[#0A192F]">
             {analise.classificacao === "VIAVEL_COM_ATENCAO"
-              ? "Essa meta é possível, mas vai deixar pouco espaço livre."
-              : "Essa meta cabe no seu orçamento."}
+              ? "A meta cabe na margem, mas deixa pouco valor disponível."
+              : "Essa meta cabe na margem mensal informada."}
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Ela usará {formatarPercentual(analise.percentualMargemComprometida)} do que está disponível para uma nova meta.
