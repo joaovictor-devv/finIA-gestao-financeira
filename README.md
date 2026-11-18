@@ -434,3 +434,13 @@ O objetivo do produto pode ser resumido como:
 A documentação acima descreve o código das branches recentes; o histórico de versões e resultados anteriores permanece acessível pelos commits do Git. Não é necessário aplicar arquivos `.patch` ou importar um ZIP para atualizar a cópia clonada.
 
 **Projeção das metas na interface:** os resultados apresentam valor projetado ao término do período, percentual e valor ainda necessário, sem comparar "Hoje" e "Depois" quando isso repete informação. A diferença em relação ao planejamento atual só é mostrada quando existir. O valor realmente separado depende de atualização manual na página Metas; o simulador não efetiva aportes.
+
+### Aportes e mudanças de renda nas simulações
+
+- **Aporte adicional para uma meta:** mostra o **aporte mensal já previsto** pela regra `(valor-alvo - valor-registrado) / prazo`, arredondado para cima ao centavo. O campo recebe **somente o adicional**. Ao concluir a meta, o motor interrompe os aportes; o excedente solicitado **não migra para outras metas**.
+- **Redução de renda:** o usuário pode optar por limitar os aportes previstos ao que sobrar **após despesas e reserva planejada**. Nesse modo, metas de prioridade alta recebem primeiro até seu aporte planejado, depois média e baixa. Isso apenas simula um ajuste e **não salva novas condições nas metas**. Se a renda não cobrir nem despesas e reserva, permanece o déficit. Também é possível desmarcar essa opção e visualizar o impacto de manter todos os aportes.
+- **Aumento de renda:** os aportes das metas não crescem automaticamente com a renda. A pessoa pode escolher destinar parte do aumento mensal a **uma meta selecionada**, informando o valor adicional, limitado ao aumento de renda. Não há previsão de rentabilidade.
+- **Evolução das metas com alteração de renda:** usa os dados mensais calculados pelo backend, mas apresenta **até três marcos do período por meta**, a projeção final e diferenças reais no valor ou prazo. Não repete tabelas mensais.
+
+Para outros tipos de cenário, a API mantém os cálculos anteriores. O campo opcional `ajustarAportesAoOrcamento` ativa exclusivamente o modo de teto de aportes, que não pode ser combinado com aportes extras na mesma simulação.
+
