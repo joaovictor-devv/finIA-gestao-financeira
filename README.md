@@ -273,17 +273,14 @@ Exemplo:
 
 A resposta contém, entre outros dados:
 
-- saldo inicial e saldo final projetado;
-- variação do saldo;
-- classificação final;
-- evolução mês a mês;
-- renda, gastos e margem de cada mês;
-- eventos aplicados em cada período;
-- total reservado;
-- total destinado às metas;
-- rendas e gastos extraordinários;
+- evolução mensal de renda, gastos e **folga** (renda menos compromissos);
+- reserva **planejada** no período;
+- aportes **planejados** às metas;
+- eventos aplicados em cada mês;
 - progresso atual e projetado de cada meta;
-- mês previsto de conclusão quando ocorrer dentro da simulação.
+- mês previsto de conclusão, quando ocorrer dentro da simulação.
+
+**Compatibilidade:** a API ainda retorna campos antigos de saldo projetado, mas eles **não são indicadores de patrimônio** e não aparecem como resultado principal na interface. A tela utiliza folga mensal, reserva planejada e evolução das metas, para não confundir dinheiro livre com dinheiro já guardado.
 
 ## Inteligência Artificial
 
@@ -378,18 +375,15 @@ mvn verify
 
 Os testes automatizados cobrem regras centrais do motor financeiro, comprometimento das metas, análise de gastos, viabilidade de metas, validações dos cenários de simulação, configuração da IA e carregamento do contexto Spring.
 
-## CI
+## Integração contínua (CI)
 
-A branch `dev/finia-desenvolvimento` possui GitHub Actions. A cada push, o CI valida:
+O workflow `.github/workflows/ci.yml` verifica mudanças no código:
 
-```text
-Backend: mvn verify
-Banco: migração legada -> schema final
-API: aplicação real + MySQL + smoke tests HTTP
-Frontend atual: npm ci + lint + build
-```
+- Java 21: `mvn verify`, incluindo os testes JUnit e a API integrada em H2;
+- MySQL 8.4: migração da estrutura antiga, aplicação idempotente e smoke test HTTP da API;
+- React/Vite: `npm ci`, `npm run lint`, `npm run build` e testes Playwright em desktop/mobile.
 
-O smoke test também verifica que simulações não alteram os dados reais e que metas inviáveis não são persistidas.
+Para conhecer o estado **atual** dos testes, consulte a [aba Actions](https://github.com/joaovictor-devv/finIA-gestao-financeira/actions). Registros de uma entrega anterior não provam que a versão presente esteja aprovada.
 
 ## Tecnologias
 
@@ -404,6 +398,7 @@ O smoke test também verifica que simulações não alteram os dados reais e que
 - OpenAI Java SDK
 - OpenAI Responses API
 - GitHub Actions
+- React 19, Vite 8, Tailwind CSS 4 e Playwright
 
 ## Escopo final
 
@@ -422,13 +417,11 @@ O objetivo do produto pode ser resumido como:
 
 > Você informa o básico. O FinIA calcula, simula e explica.
 
-## Entrega de conclusão — 28/09/2026
+## Documentação atual
 
-A interface agora permite editar metas com prévia de viabilidade, combinar os cinco tipos de eventos em cenários personalizados e recuperar perguntas após falhas da IA. Valores monetários têm limite e precisão coerentes com o banco. Resultados anteriores são limpos quando os parâmetros mudam. Fontes e ícones são servidos pelo próprio frontend.
+- [Executar, testar e apresentar](docs/EXECUTAR.md) — Docker, ferramentas locais e roteiro de apresentação.
+- [Iniciar no Windows](docs/INICIAR-WINDOWS.md) — configuração do launcher e execução com dois cliques.
+- [Frontend](frontend/README.md) — rotas, integração da API e testes de navegador.
 
-Novo endpoint sem persistência: `POST /metas/{id}/simular`, com o mesmo corpo de `PUT /metas/{id}`. A prévia de edição exclui o compromisso da própria meta; salvar revalida os dados no backend.
+A documentação acima descreve o código das branches recentes; o histórico de versões e resultados anteriores permanece acessível pelos commits do Git. Não é necessário aplicar arquivos `.patch` ou importar um ZIP para atualizar a cópia clonada.
 
-- [Como executar e apresentar](docs/EXECUTAR.md)
-- [Funcionalidades, feedback e limites da validação](docs/ENTREGA.md)
-
-Frontend: `npm test` executa jornadas em Chromium nos tamanhos desktop e mobile. Backend: `mvn verify` inclui a jornada HTTP com repositórios JDBC e H2 isolado. Os testes existentes de MySQL no CI continuam necessários.
