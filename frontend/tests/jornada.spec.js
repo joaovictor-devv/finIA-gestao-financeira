@@ -788,3 +788,97 @@ test('mudança no prazo de conclusão importa mesmo com valor final igual', asyn
   await expect(cartao.getByTestId('diferenca-meta')).toHaveCount(0);
   await expect(cartao.getByTestId('diferenca-prazo-meta')).toContainText('antecipada de abr/27 para fev/27');
 });
+
+
+test('aporte adicional mostra o mínimo já previsto e não soma duas vezes', async ({ page }) => {
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Aporte adicional para uma meta/ }).click();
+  await expect(page.getByTestId('aporte-minimo-meta')).toContainText('R$ 200,00');
+  await expect(page.getByText('Restante da meta:', { exact: false })).toContainText('R$ 2.000,00');
+  await page.getByRole('spinbutton', { name: 'Quanto deseja adicionar por mês?' }).fill('100');
+  await expect(page.getByText('Aporte total mensal para esta meta:', { exact: false })).toContainText('R$ 300,00');
+  await expect(page.getByText('já está incluído no orçamento', { exact: false })).toBeVisible();
+});
+
+test('redução de renda adapta aportes por escolha e mostra marcos das metas', async ({ page }) => {
+  const pedidos = [];
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    pedidos.push(pedido);
+    const base = pedido.nomeCenario === 'Sem mudanças';
+    const adapta = pedido.ajustarAportesAoOrcamento === true;
+    const renda = base ? 3000 : 1600;
+    const aporte = adapta ? 100 : 200;
+    const final = 1000 + aporte * 3;
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: aporte * 3,
+      evolucaoMensal: [1,2,3].map(i => ({
+        indiceMes: i, mesReferencia: '2027-0' + i,
+        rendaMensal: renda, gastosMensais: 1200,
+        reservaPlanejada: 300, aporteMetasBase: aporte,
+        margemMensal: renda - 1500 - aporte,
+        metasProjetadas: [{ id: 1, nome: 'Notebook', valorAlvo: 3000,
+          valorProjetado: 1000 + aporte * i }]
+      })),
+      projecoesMetas: [{
+        id: 1, nome: 'Notebook', valorAtual: 1000, valorAlvo: 3000,
+        valorProjetado: final, concluidaNoPeriodo: false
+      }]
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Redução de renda/ }).click();
+  await page.getByRole('spinbutton', { name: 'Nova renda mensal total' }).fill('1600');
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await expect(page.getByLabel('Adaptar os aportes das metas à renda disponível')).toBeChecked();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByTestId('evolucao-metas-renda')).toBeVisible();
+  await expect(page.getByTestId('evolucao-meta-renda')).toContainText('R$ 1.300,00');
+  await expect(page.getByTestId('evolucao-meta-renda')).toContainText('jan/27');
+  await expect(page.getByTestId('impacto-renda-meta')).toContainText('R$ 300,00');
+  expect(pedidos.find(p => p.nomeCenario === 'Redução de renda').ajustarAportesAoOrcamento).toBe(true);
+  await page.getByLabel('Adaptar os aportes das metas à renda disponível').uncheck();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByTestId('evolucao-meta-renda')).toContainText('R$ 1.600,00');
+  expect(pedidos.filter(p => p.nomeCenario === 'Redução de renda').at(-1).ajustarAportesAoOrcamento).toBeUndefined();
+  await expect(page.getByRole('table')).toHaveCount(0);
+});
+
+test('aumento de renda só acelera meta quando aporte extra é escolhido', async ({ page }) => {
+  const pedidos = [];
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    pedidos.push(pedido);
+    const extra = pedido.nomeCenario !== 'Sem mudanças' ? Number(pedido.aporteExtraMetasMensal || 0) : 0;
+    const aporte = 200 + extra;
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: aporte * 3,
+      evolucaoMensal: [1,2,3].map(i => ({
+        indiceMes: i, mesReferencia: '2027-0' + i, rendaMensal: 3500,
+        gastosMensais: 1200, reservaPlanejada: 300, aporteMetasBase: 200,
+        aporteExtraMetas: extra, margemMensal: 2000 - aporte,
+        metasProjetadas: [{ id: 1, nome: 'Notebook', valorAlvo: 3000,
+          valorProjetado: 1000 + aporte * i }]
+      })),
+      projecoesMetas: [{ id: 1, nome: 'Notebook', valorAtual: 1000,
+        valorAlvo: 3000, valorProjetado: 1000 + aporte * 3,
+        concluidaNoPeriodo: false }]
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Aumento de renda/ }).click();
+  await page.getByRole('spinbutton', { name: 'Nova renda mensal total' }).fill('3500');
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByTestId('evolucao-metas-renda')).toContainText('A renda maior não acelera as metas sozinha');
+  await page.getByLabel('Usar parte do aumento da renda para antecipar uma meta').check();
+  await page.getByRole('spinbutton', { name: 'Valor extra mensal destinado à meta' }).fill('150');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByTestId('evolucao-meta-renda')).toContainText('R$ 2.050,00');
+  await expect(page.getByTestId('impacto-renda-meta')).toContainText('R$ 450,00');
+  expect(pedidos.filter(p => p.nomeCenario === 'Aumento de renda').at(-1).aporteExtraMetasMensal).toBe(150);
+  expect(pedidos.filter(p => p.nomeCenario === 'Aumento de renda').at(-1).metaPrioritariaId).toBe(1);
+  await expect(page.getByRole('table')).toHaveCount(0);
+});
