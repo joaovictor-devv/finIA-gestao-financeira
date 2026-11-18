@@ -43,7 +43,7 @@ Manrope, Material Symbols Outlined, tons de azul e ciano e formato monetário br
 
 ## Histórico temporário do chat
 
-A tela `/insights` mantém até 60 mensagens em `sessionStorage` **somente na aba atual** do navegador. A conversa continua visível ao sair da tela, voltar ou atualizar a página. O usuário pode selecionar **Limpar conversa** a qualquer momento. O histórico não é gravado no MySQL nem compartilhado automaticamente entre abas. Alguns navegadores restauram dados de sessão ao reabrir abas; utilize o botão para apagá-los imediatamente. Apenas a pergunta corrente é enviada a `POST /ia/perguntar` (o histórico exibido não é repassado à API).
+A tela `/insights` mantém até 60 mensagens em `sessionStorage` **somente na aba atual** do navegador. A conversa continua visível ao sair da tela, voltar ou atualizar a página. O usuário pode selecionar **Limpar conversa** a qualquer momento. O histórico não é gravado no MySQL nem compartilhado automaticamente entre abas. Alguns navegadores restauram dados de sessão ao reabrir abas; utilize o botão para apagá-los imediatamente. Para entender perguntas de continuação, até seis mensagens anteriores são enviadas junto da pergunta atual a `POST /ia/perguntar`; não são gravadas no servidor. Ao selecionar **Limpar conversa**, a próxima pergunta é enviada sem histórico.
 
 Em `/simulacoes`, cada opção de decisão exibe somente os indicadores pertinentes. **Compra pontual** analisa um único mês e não altera automaticamente os aportes à reserva ou às metas; se o orçamento do mês ficar negativo, alerta sobre a necessidade de revisão ou de recursos livres anteriores. Os cenários completos (orçamento atual e personalizado) mantêm a tabela mensal. Não há gráficos de linhas.
 
