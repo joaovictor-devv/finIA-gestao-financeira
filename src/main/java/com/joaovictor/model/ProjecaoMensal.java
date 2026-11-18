@@ -18,6 +18,7 @@ public class ProjecaoMensal {
     private final BigDecimal saldoDisponivelProjetado;
     private final String classificacao;
     private final List<String> eventosAplicados;
+    private final List<ProjecaoMetaMensal> metasProjetadas;
 
     public ProjecaoMensal(int indiceMes,
                           String mesReferencia,
@@ -32,6 +33,26 @@ public class ProjecaoMensal {
                           BigDecimal saldoDisponivelProjetado,
                           String classificacao,
                           List<String> eventosAplicados) {
+        this(indiceMes, mesReferencia, rendaMensal, rendaExtraordinaria, gastosMensais,
+                reservaPlanejada, aporteMetasBase, aporteExtraMetas, gastoExtraordinario,
+                margemMensal, saldoDisponivelProjetado, classificacao, eventosAplicados, List.of());
+    }
+
+    public ProjecaoMensal(int indiceMes,
+                          String mesReferencia,
+                          BigDecimal rendaMensal,
+                          BigDecimal rendaExtraordinaria,
+                          BigDecimal gastosMensais,
+                          BigDecimal reservaPlanejada,
+                          BigDecimal aporteMetasBase,
+                          BigDecimal aporteExtraMetas,
+                          BigDecimal gastoExtraordinario,
+                          BigDecimal margemMensal,
+                          BigDecimal saldoDisponivelProjetado,
+                          String classificacao,
+                          List<String> eventosAplicados,
+                          List<ProjecaoMetaMensal> metasProjetadas) {
+        this.metasProjetadas = List.copyOf(metasProjetadas);
         this.indiceMes = indiceMes;
         this.mesReferencia = mesReferencia;
         this.rendaMensal = rendaMensal;
@@ -60,4 +81,5 @@ public class ProjecaoMensal {
     public BigDecimal getSaldoDisponivelProjetado() { return saldoDisponivelProjetado; }
     public String getClassificacao() { return classificacao; }
     public List<String> getEventosAplicados() { return eventosAplicados; }
+    public List<ProjecaoMetaMensal> getMetasProjetadas() { return metasProjetadas; }
 }
