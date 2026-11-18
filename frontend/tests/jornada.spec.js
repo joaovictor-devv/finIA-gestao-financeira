@@ -877,7 +877,7 @@ test('aumento de renda só acelera meta quando aporte extra é escolhido', async
   await page.getByRole('spinbutton', { name: 'Nova renda mensal total' }).fill('3500');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByTestId('evolucao-metas-renda')).toContainText('A renda maior não acelera as metas sozinha');
+  await expect(page.getByTestId('evolucao-metas-renda')).toContainText('As metas seguem no ritmo atual');
   await page.getByLabel('Usar parte do aumento da renda para antecipar uma meta').check();
   await page.getByRole('spinbutton', { name: 'Valor extra mensal destinado à meta' }).fill('150');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
