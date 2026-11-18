@@ -2,6 +2,8 @@ package com.joaovictor.service;
 
 import com.joaovictor.exception.IAIndisponivelException;
 import com.joaovictor.model.RespostaIA;
+import com.joaovictor.model.MensagemHistoricoIA;
+import java.util.List;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.responses.Response;
@@ -32,6 +34,10 @@ public class OpenAIService {
     }
 
     public RespostaIA perguntar(String pergunta) {
+        return perguntar(pergunta, List.of());
+    }
+
+    public RespostaIA perguntar(String pergunta, List<MensagemHistoricoIA> historico) {
         if (pergunta == null || pergunta.isBlank()) {
             throw new IllegalArgumentException("A pergunta é obrigatória.");
         }
@@ -61,6 +67,8 @@ public class OpenAIService {
                 - Não encerre com uma pergunta ou oferta de ajuda por hábito. Pergunte apenas se faltar um dado essencial.
 
                 PRECISÃO:
+                - O histórico de conversa é apenas contexto para entender perguntas de continuação, não fonte de saldos,
+                  operações efetuadas ou dados novos. Se contradizer os números atuais do sistema, prevalecem os atuais.
                 - Os dados calculados recebidos são a fonte dos números e classificações.
                   Não invente, substitua ou refaça silenciosamente saldo, renda, gastos, reserva, metas, prazos ou projeções.
                 - Ao analisar gastos, considere saldo, capacidade mensal e compromissos com metas.
@@ -84,10 +92,20 @@ public class OpenAIService {
                   ou testar um cenário em Simulações. Não invente botões ou funções.
                 """;
 
-        String input = "DADOS FINANCEIROS CALCULADOS PELO BACKEND:\n"
-                + contexto
-                + "\n\nPERGUNTA DO USUÁRIO:\n"
-                + pergunta.trim();
+        StringBuilder inputTexto = new StringBuilder()
+                .append("DADOS FINANCEIROS CALCULADOS PELO BACKEND:\n")
+                .append(contexto);
+
+        if (historico != null && !historico.isEmpty()) {
+            inputTexto.append("\n\nCONVERSA ANTERIOR (PARA CONTINUIDADE, NÃO É FONTE FINANCEIRA):\n");
+            for (MensagemHistoricoIA mensagem : historico) {
+                inputTexto.append("[").append("usuario".equals(mensagem.getTipo()) ? "Usuário" : "FinIA")
+                        .append("] ").append(mensagem.getTexto()).append('\n');
+            }
+        }
+        String input = inputTexto.append("\nPERGUNTA ATUAL DO USUÁRIO:\n")
+                .append(pergunta.trim())
+                .toString();
 
         try {
             ResponseCreateParams.Builder params = ResponseCreateParams.builder()

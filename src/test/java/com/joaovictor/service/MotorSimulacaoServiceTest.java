@@ -40,6 +40,27 @@ class MotorSimulacaoServiceTest {
     }
 
     @Test
+    void deveClassificarTodoOHorizontePeloMesDeficitarioSemConfundirComSaldoTeorico() {
+        SimulacaoFinanceiraRequest request = request(3);
+        request.setEventos(List.of(evento(1, "GASTO_EXTRAORDINARIO", "900", null)));
+
+        ResultadoSimulacaoFinanceira resultado = service.simular(
+                request, capacidade("1000", "800", "0", "0", "0"), List.of());
+
+        assertThat(resultado.getEvolucaoMensal().get(0).getMargemMensal()).isEqualByComparingTo("-700");
+        assertThat(resultado.getEvolucaoMensal().get(0).getClassificacao()).isEqualTo("DEFICIT_MENSAL");
+        // O saldo acumulado permanece negativo, mas a renda cobre o segundo mês.
+        assertThat(resultado.getEvolucaoMensal().get(1).getSaldoDisponivelProjetado())
+                .isEqualByComparingTo("-500");
+        assertThat(resultado.getEvolucaoMensal().get(1).getMargemMensal())
+                .isEqualByComparingTo("200");
+        assertThat(resultado.getEvolucaoMensal().get(1).getClassificacao()).isEqualTo("APERTADA");
+        // Último mês positivo não pode apagar o risco do primeiro.
+        assertThat(resultado.getClassificacaoFinal()).isEqualTo("DEFICIT_MENSAL");
+        assertThat(resultado.getMensagem()).contains("1 mês");
+    }
+
+    @Test
     void deveSimularReservaMensalSemMetasSemAlterarOOrcamentoReal() {
         SimulacaoFinanceiraRequest request = request(3);
         request.setReservaMensal(dinheiro("600"));

@@ -100,7 +100,7 @@ function Planejamento() {
       <PageHeader
         pergunta="Seu planejamento"
         titulo="Meu Orçamento"
-        descricao="Informe sua renda, suas despesas e o valor reservado mensalmente para planejar com mais segurança."
+        descricao="Organize a renda, as despesas e o valor que pretende reservar mensalmente. Os resultados são estimativas, não movimentações na conta."
       />
 
       {erro && <Feedback tipo="erro">{erro}</Feedback>}
@@ -141,7 +141,7 @@ function Planejamento() {
                 <div className="min-w-0">
                   <h3 id="orcamento-reserva" className="text-sm font-extrabold uppercase tracking-wide text-slate-700">2. Reserva financeira</h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Defina quanto pretende separar da renda mensal para guardar ou investir. Esse valor é independente dos aportes calculados para suas metas.
+                    Defina quanto pretende separar da renda mensal como reserva. Esse valor não inclui os aportes destinados às metas nem rendimentos de aplicações financeiras.
                   </p>
                 </div>
               </div>
@@ -178,11 +178,15 @@ function Planejamento() {
                   <p className={"finia-number mt-2 text-3xl font-extrabold " + (previa.depoisMetas < 0 ? "text-red-700" : "text-cyan-800")}>{formatarMoeda(previa.depoisMetas)}</p>
                   <p className="mt-2 text-xs leading-6 text-slate-600">
                     {previa.depoisMetas < 0
-                      ? "Os compromissos ultrapassam a renda. Revise despesas, reserva ou metas."
+                      ? `Os compromissos superam a renda em ${formatarMoeda(Math.abs(previa.depoisMetas))} por mês. Revise despesas, reserva ou aportes às metas.`
                       : "Valor disponível após despesas, reserva planejada e aportes às metas. Não significa dinheiro já guardado."}
                   </p>
                 </div>
                 <BudgetBreakdown capacidade={{ rendaMensal: previa.renda, gastosMensais: previa.gastos, reservaPlanejada: previa.guardar, comprometimentoMensalMetas: previa.metas }} />
+                <p className="mt-4 text-xs leading-5 text-slate-500">
+                  O resumo considera meses típicos. Despesas extraordinárias, parcelas futuras ou rendimentos não cadastrados
+                  precisam ser avaliados separadamente em Simulações.
+                </p>
               </>
             ) : (
               <p className="my-6 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Preencha os três valores para visualizar a distribuição do orçamento.</p>

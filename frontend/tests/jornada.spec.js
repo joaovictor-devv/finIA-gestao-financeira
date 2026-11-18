@@ -170,7 +170,7 @@ test('orçamento mostra a prévia sem gravar antes de salvar', async ({ page }) 
   });
   await page.goto('/planejamento');
   await page.getByLabel('Despesas mensais').fill('2800');
-  await expect(page.getByText('Os compromissos ultrapassam a renda.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Os compromissos superam a renda em', { exact: false })).toBeVisible();
   expect(gravacoes).toBe(0);
   await page.getByRole('button', { name: 'Salvar orçamento' }).click();
   await expect(page.getByRole('status')).toContainText('Orçamento salvo');
@@ -545,4 +545,66 @@ test('simulações de renda apresentam resultado da mudança sem tabela repetida
   await expect(page.getByText('Variação mensal')).toBeVisible();
   await expect(page.getByText('R$ 500,00', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('table')).toHaveCount(0);
+});
+
+
+test('chat usa apenas as mensagens anteriores para entender continuação e limpa o contexto', async ({ page }) => {
+  const pedidos = [];
+  await page.route('http://localhost:8080/ia/status', route => route.fulfill({ json: { configurada: true } }));
+  await page.route('http://localhost:8080/ia/perguntar', async route => {
+    const pedido = route.request().postDataJSON();
+    pedidos.push(pedido);
+    await route.fulfill({ json: { resposta: 'Resposta ' + pedidos.length } });
+  });
+
+  await page.goto('/insights');
+  const entrada = page.getByLabel('Sua pergunta para a FinIA');
+  await entrada.fill('Como posso guardar mais?');
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+  await expect(page.getByRole('log')).toContainText('Resposta 1');
+  await entrada.fill('E se forem 100 reais a mais?');
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+  await expect(page.getByRole('log')).toContainText('Resposta 2');
+
+  expect(pedidos[0]).toEqual({ pergunta: 'Como posso guardar mais?', historico: [] });
+  expect(pedidos[1]).toEqual({
+    pergunta: 'E se forem 100 reais a mais?',
+    historico: [
+      { tipo: 'usuario', texto: 'Como posso guardar mais?' },
+      { tipo: 'finia', texto: 'Resposta 1' },
+    ]
+  });
+
+  await page.getByRole('button', { name: 'Limpar conversa' }).click();
+  await entrada.fill('Outra pergunta');
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+  await expect(page.getByRole('log')).toContainText('Resposta 3');
+  expect(pedidos[2]).toEqual({ pergunta: 'Outra pergunta', historico: [] });
+});
+
+test('compra analisa o mês mas informa insuficiência de saldo informado para pagar hoje', async ({ page }) => {
+  await page.route('http://localhost:8080/analise/capacidade-gastos', route =>
+    route.fulfill({ json: { ...capacidade, saldoAtual: 100 } })
+  );
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const compra = route.request().postDataJSON().nomeCenario === 'Compra pontual';
+    await route.fulfill({ json: {
+      meses: 1, situacaoAtual: { ...capacidade, saldoAtual: 100 },
+      evolucaoMensal: [{ indiceMes: 1, mesReferencia: '2026-12',
+        gastoExtraordinario: compra ? 200 : 0, margemMensal: compra ? 100 : 300 }],
+      projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Compra pontual/ }).click();
+  await page.getByRole('spinbutton', { name: 'Valor da compra (despesa única)' }).fill('200');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('A compra cabe no valor disponível', { exact: false })).toBeVisible();
+  await expect(page.getByText('O saldo informado atualmente é de R$ 100,00', { exact: false })).toBeVisible();
+});
+
+test('meta explica que prazo começa agora e aportes não podem duplicar a reserva', async ({ page }) => {
+  await page.goto('/metas');
+  await expect(page.getByText('Prazo a partir de agora (meses)')).toBeVisible();
+  await expect(page.getByText('não inclua o mesmo aporte mensal na reserva geral', { exact: false })).toBeVisible();
 });

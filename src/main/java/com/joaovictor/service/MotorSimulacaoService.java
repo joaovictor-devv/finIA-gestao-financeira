@@ -138,8 +138,7 @@ public class MotorSimulacaoService {
                     reservaMensal,
                     aporteBaseMes.add(aporteExtraMes),
                     gastoExtraordinarioMes,
-                    margemMensal,
-                    saldo
+                    margemMensal
             );
 
             evolucao.add(new ProjecaoMensal(
@@ -171,7 +170,19 @@ public class MotorSimulacaoService {
         }
 
         List<ProjecaoMeta> projecoesMetas = montarProjecoesMetas(estadosMetas);
-        String classificacaoFinal = evolucao.get(evolucao.size() - 1).getClassificacao();
+        // Diagnóstico geral pelo pior período: não esconder déficit anterior com mês final positivo.
+        String classificacaoFinal;
+        if (evolucao.stream().anyMatch(mes -> mes.getMargemMensal().signum() < 0)) {
+            classificacaoFinal = "DEFICIT_MENSAL";
+        } else if (evolucao.stream().anyMatch(mes -> "SEM_RENDA".equals(mes.getClassificacao()))) {
+            classificacaoFinal = "SEM_RENDA";
+        } else if (evolucao.stream().anyMatch(mes -> "EQUILIBRADA".equals(mes.getClassificacao()))) {
+            classificacaoFinal = "EQUILIBRADA";
+        } else if (evolucao.stream().anyMatch(mes -> "APERTADA".equals(mes.getClassificacao()))) {
+            classificacaoFinal = "APERTADA";
+        } else {
+            classificacaoFinal = "SAUDAVEL";
+        }
         BigDecimal variacaoSaldo = saldo.subtract(saldoInicial);
         String mensagem = gerarMensagem(evolucao);
         String nomeCenario = request.getNomeCenario() == null || request.getNomeCenario().isBlank()
@@ -383,14 +394,9 @@ public class MotorSimulacaoService {
                                   BigDecimal reserva,
                                   BigDecimal aporteMetas,
                                   BigDecimal gastoExtraordinario,
-                                  BigDecimal margemMensal,
-                                  BigDecimal saldoProjetado) {
+                                  BigDecimal margemMensal) {
         if (rendaDoMes.compareTo(BigDecimal.ZERO) <= 0) {
             return "SEM_RENDA";
-        }
-
-        if (saldoProjetado.compareTo(BigDecimal.ZERO) < 0) {
-            return "DEFICIT";
         }
 
         if (margemMensal.compareTo(BigDecimal.ZERO) < 0) {
