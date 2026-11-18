@@ -381,10 +381,10 @@ function Simulacoes() {
                 onChange={(event) => {
                   const texto = event.target.value;
                   setMesesDigitados(texto);
-                  if (/^\d{1,2}$/.test(texto) && Number(texto) >= 1 && Number(texto) <= 60) {
-                    setMesEvento((atual) => Math.min(atual, Number(texto)));
-                  }
                   limparResultado();
+                }}
+                onBlur={() => {
+                  if (periodoValido) setMesEvento((atual) => Math.min(atual, meses));
                 }}
                 className="finia-input mt-3 h-12 max-w-48 px-4 text-lg font-bold" />
               {!periodoValido && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">Digite um número inteiro entre 1 e 60.</p>}
