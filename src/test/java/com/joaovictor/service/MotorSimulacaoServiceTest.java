@@ -221,6 +221,7 @@ class MotorSimulacaoServiceTest {
         assertThat(resultado.getSaldoFinalProjetado()).isEqualByComparingTo("3300.00");
         assertThat(projecao.getValorProjetado()).isEqualByComparingTo("600.00");
         assertThat(projecao.getProgressoProjetadoPercentual()).isEqualByComparingTo("30.00");
+        assertThat(projecao.getImpacto()).contains("R$ 600,00").doesNotContain("R$ 600.00");
         assertThat(projecao.isConcluidaNoPeriodo()).isFalse();
         assertThat(meta.getValorInicial()).isEqualByComparingTo("0");
     }
