@@ -887,3 +887,67 @@ test('aumento de renda só acelera meta quando aporte extra é escolhido', async
   expect(pedidos.filter(p => p.nomeCenario === 'Aumento de renda').at(-1).metaPrioritariaId).toBe(1);
   await expect(page.getByRole('table')).toHaveCount(0);
 });
+
+
+test('análise da renda distribui resumo e duas metas sem comprimir os cartões no desktop ou celular', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    const renda = pedido.nomeCenario === 'Sem mudanças' ? 3000 : 5000;
+    await route.fulfill({ json: {
+      meses: 6, situacaoAtual: capacidade, totalReservaPlanejada: 1800,
+      totalAportadoMetas: 10192.38,
+      evolucaoMensal: Array.from({ length: 6 }, (_, i) => ({
+        indiceMes: i + 1,
+        mesReferencia: ['2026-12', '2027-01', '2027-02', '2027-03', '2027-04', '2027-05'][i],
+        rendaMensal: renda, gastosMensais: 1000, reservaPlanejada: 300,
+        aporteMetasBase: 1698.73, aporteExtraMetas: 0,
+        margemMensal: renda - 2998.73,
+        metasProjetadas: [
+          { id: 1, nome: 'oi', valorAlvo: 100000, valorProjetado: 1282.06 * (i + 1) },
+          { id: 2, nome: 'teste', valorAlvo: 5000, valorProjetado: 416.67 * (i + 1) },
+        ],
+      })),
+      projecoesMetas: [
+        { id: 1, nome: 'oi', valorAtual: 0, valorAlvo: 100000, valorProjetado: 7692.36, concluidaNoPeriodo: false },
+        { id: 2, nome: 'teste', valorAtual: 0, valorAlvo: 5000, valorProjetado: 2500.02, concluidaNoPeriodo: false },
+      ],
+    } });
+  });
+
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Aumento de renda/ }).click();
+  await page.getByRole('spinbutton', { name: 'Nova renda mensal total' }).fill('5000');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+
+  const resumo = page.getByTestId('analise-cenario');
+  const metas = page.getByTestId('evolucao-metas-renda');
+  const cartoes = page.getByTestId('evolucao-meta-renda');
+
+  await expect(page.getByTestId('resumo-renda')).toBeVisible();
+  await expect(page.getByTestId('variacao-renda')).toContainText('R$');
+  await expect(metas).toBeVisible();
+  await expect(cartoes).toHaveCount(2);
+  await expect(cartoes.nth(0)).toContainText('R$ 7.692,36');
+  await expect(cartoes.nth(1)).toContainText('R$ 2.500,02');
+  await expect(resumo.getByTestId('evolucao-metas-renda')).toHaveCount(0);
+  await expect(page.getByRole('table')).toHaveCount(0);
+
+  const painel = await resumo.boundingBox();
+  const secaoMetas = await metas.boundingBox();
+  const primeiro = await cartoes.nth(0).boundingBox();
+  const segundo = await cartoes.nth(1).boundingBox();
+  expect(painel && secaoMetas && primeiro && segundo).toBeTruthy();
+  expect(secaoMetas.y).toBeGreaterThanOrEqual(painel.y + painel.height - 2);
+
+  if (page.viewportSize()?.width >= 1200) {
+    expect(secaoMetas.width).toBeGreaterThan(painel.width * 1.4);
+    expect(Math.abs(primeiro.y - segundo.y)).toBeLessThan(3);
+  } else {
+    expect(segundo.y).toBeGreaterThan(primeiro.y);
+  }
+
+  const semRolagemHorizontal = await page.evaluate(() =>
+    document.documentElement.scrollWidth <= window.innerWidth + 2
+  );
+  expect(semRolagemHorizontal).toBe(true);
+});
