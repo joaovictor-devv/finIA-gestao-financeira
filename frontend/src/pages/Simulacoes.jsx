@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Icon from "../components/Icon";
 import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
+import ResultadoPorDecisao from "../components/ResultadoPorDecisao";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
@@ -70,6 +71,7 @@ function Simulacoes() {
   }, []);
 
   const cenarioAtual = useMemo(() => cenarios.find((item) => item.id === cenario), [cenario]);
+  const cenarioCompleto = cenario === "normal" || cenario === "personalizado";
 
   function limparResultado() {
     setResultado(null);
@@ -101,7 +103,7 @@ function Simulacoes() {
   function montarPayload() {
     const payload = {
       nomeCenario: cenarioAtual?.titulo || "Simulação",
-      meses,
+      meses: cenario === "compra" ? 1 : meses,
       eventos: [],
     };
 
@@ -141,7 +143,7 @@ function Simulacoes() {
   }
 
   function validarCenario() {
-    if (!periodoValido) return "Informe um período entre 1 e 60 meses, em números inteiros.";
+    if (cenario !== "compra" && !periodoValido) return "Informe um período entre 1 e 60 meses, em números inteiros.";
     if (["compra", "imprevisto", "aporte"].includes(cenario) && numero(valor) <= 0) {
       return "Informe um valor maior que zero para essa simulação.";
     }
@@ -248,7 +250,7 @@ function Simulacoes() {
 
       {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
-      {capacidade && (
+      {capacidade && cenarioCompleto && (
         <section className="finia-metric-strip" aria-label="Ponto de partida">
           <PontoPartida titulo="Renda por mês" valor={formatarMoeda(capacidade.rendaMensal)} />
           <PontoPartida titulo="Gastos por mês" valor={formatarMoeda(capacidade.gastosMensais)} />
@@ -371,7 +373,7 @@ function Simulacoes() {
             )}
 
             {cenario === "personalizado" && <EventosCenario eventos={eventos} metas={metas} meses={meses} onChange={(novos) => { setEventos(novos); limparResultado(); }} />}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            {cenario !== "compra" && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <label htmlFor="periodo-simulacao" className="block text-sm font-extrabold text-slate-800">Período da simulação (meses)</label>
               <p className="mt-1 text-xs leading-5 text-slate-600">Informe um período de 1 a 60 meses. As opções abaixo são atalhos.</p>
               <input id="periodo-simulacao" type="number" inputMode="numeric" min="1" max="60" step="1" required
@@ -395,12 +397,12 @@ function Simulacoes() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
 
           <button
             type="submit"
-            disabled={simulando || !capacidade || !periodoValido || (cenario === "aporte" && metas.length === 0)}
+            disabled={simulando || !capacidade || (cenario !== "compra" && !periodoValido) || (cenario === "aporte" && metas.length === 0)}
             className="finia-button-primary mt-7 w-full px-5 py-3.5"
           >
             {simulando ? "Simulando..." : "3. Ver o que aconteceria"}
@@ -416,14 +418,25 @@ function Simulacoes() {
               <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">Escolha um cenário para avaliar suas despesas, folga mensal, reserva planejada e metas.</p>
             </div>
           ) : (
-            <ResultadoSimulacao resultado={resultado} />
+            cenarioCompleto ? (
+              <ResultadoSimulacao resultado={resultado} />
+            ) : (
+              <ResultadoPorDecisao
+                cenario={cenario}
+                resultado={resultado}
+                comparacao={comparacao}
+                valorInformado={ultimoPayload?.eventos?.[0]?.valor}
+                mesEvento={ultimoPayload?.eventos?.[0]?.mes || 1}
+                metaId={ultimoPayload?.metaPrioritariaId}
+              />
+            )
           )}
         </section>
       </section>
 
       {resultado && (
         <>
-          <section className="finia-card mt-6 p-6 sm:p-8">
+          {cenario === "personalizado" && <section className="finia-card mt-6 p-6 sm:p-8">
             <h2 className="text-xl font-extrabold text-[#0A192F]">Comparação com o planejamento atual</h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">Comparamos dois orçamentos no mesmo período, ambos calculados pelo motor financeiro. A diferença não é uma movimentação real.</p>
             {comparacao ? (
@@ -434,9 +447,9 @@ function Simulacoes() {
               </div>
             ) : <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">O cenário sem mudanças está indisponível. Os resultados da sua simulação continuam abaixo.</p>}
             <p className="mt-4 text-xs leading-5 text-slate-500">Menor disponibilidade pode ocorrer porque a reserva ou os aportes às metas aumentaram. Considere também os meses em déficit antes de decidir.</p>
-          </section>
+          </section>}
 
-          <section className="finia-card mt-6 p-6 sm:p-8">
+          {cenarioCompleto && <section className="finia-card mt-6 p-6 sm:p-8">
             <h2 className="text-xl font-extrabold text-[#0A192F]">Detalhamento mensal da simulação</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Confira quanto seria recebido, gasto e destinado à reserva ou às metas em cada mês.
@@ -488,9 +501,9 @@ function Simulacoes() {
               Reservas e aportes representam valores planejados, não depósitos efetivados.
               A projeção não inclui rendimento de investimentos, juros ou inflação.
             </p>
-          </section>
+          </section>}
 
-          {resultado.projecoesMetas?.length > 0 && (
+          {cenarioCompleto && resultado.projecoesMetas?.length > 0 && (
             <section className="finia-card mt-6 p-6 sm:p-8">
               <h2 className="text-xl font-extrabold text-[#0A192F]">Projeção de cada meta</h2>
               <p className="mt-1 text-sm text-slate-500">Veja como cada objetivo ficaria nesse cenário.</p>

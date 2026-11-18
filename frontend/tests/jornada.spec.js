@@ -236,14 +236,14 @@ test('compara a folga mensal com a referência e destaca os meses afetados', asy
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: /Despesa imprevista/ }).click();
   await page.getByRole('spinbutton', { name: 'Valor da despesa extraordinária' }).fill('500');
+  await page.getByLabel('Mês em que a despesa ocorrerá').selectOption('2');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
-  await expect(page.getByRole('table')).toBeVisible();
-  await expect(page.getByText('O orçamento ficaria negativo em 1 de 3 meses.')).toBeVisible();
-  const linhas = page.getByRole('table').getByRole('row');
-  await expect(linhas).toHaveCount(4);
-  await expect(linhas.nth(1)).toContainText('R$ 300,00');
-  await expect(linhas.nth(2)).toContainText('-R$ 200,00');
+  await expect(page.getByTestId('resultado-despesa')).toBeVisible();
+  await expect(page.getByText('A despesa extraordinária supera o valor disponível', { exact: false })).toBeVisible();
+  await expect(page.getByTestId('disponivel-antes')).toContainText('R$ 300,00');
+  await expect(page.getByTestId('disponivel-depois')).toContainText('-R$ 200,00');
+  await expect(page.getByRole('table')).toHaveCount(0);
 
   expect(chamadas).toBe(2);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -280,10 +280,10 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
   expect(payloadSimulado.reservaMensal).toBe(500);
-  await expect(page.getByText('Você não possui metas cadastradas.', { exact: false })).toBeVisible();
+  await expect(page.getByText('A simulação não exige metas cadastradas', { exact: false })).toBeVisible();
   await expect(page.getByText('R$ 1.500,00', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Diferença: +R$ 1.500,00')).toBeVisible();
-  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByText('Mudança na reserva em relação ao plano atual')).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByText('Saldo não é o foco.')).toHaveCount(0);
 });
 
@@ -440,4 +440,109 @@ test('histórico do chatbot não é compartilhado automaticamente com outra aba'
   } finally {
     await segundaAba.close();
   }
+});
+
+
+test('compra pontual cabe no valor não comprometido e não repete orçamento mensal', async ({ page }) => {
+  let chamadas = [];
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    chamadas.push(pedido);
+    const compra = pedido.nomeCenario === 'Compra pontual';
+    const custo = compra ? 200 : 0;
+    await route.fulfill({ json: {
+      meses: 1, situacaoAtual: capacidade, totalReservaPlanejada: 100,
+      totalAportadoMetas: 0, evolucaoMensal: [{
+        indiceMes: 1, mesReferencia: '2026-12',
+        rendaMensal: 2000, gastosMensais: 1600,
+        reservaPlanejada: 100, aporteMetasBase: 0, aporteExtraMetas: 0,
+        gastoExtraordinario: custo, margemMensal: 300 - custo, eventosAplicados: []
+      }], projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Compra pontual/ }).click();
+  await expect(page.getByLabel('Período da simulação (meses)')).toHaveCount(0);
+  await page.getByRole('spinbutton', { name: 'Valor da compra (despesa única)' }).fill('200');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('A compra cabe no valor disponível', { exact: false })).toBeVisible();
+  await expect(page.getByTestId('disponivel-antes')).toContainText('R$ 300,00');
+  await expect(page.getByTestId('disponivel-depois')).toContainText('R$ 100,00');
+  await expect(page.getByRole('table')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Projeção de cada meta' })).toHaveCount(0);
+  await expect(page.getByText('E a reserva e as metas?')).toBeVisible();
+  expect(chamadas).toHaveLength(2);
+  expect(chamadas.map(x => x.meses)).toEqual([1, 1]);
+  expect(chamadas.find(x => x.nomeCenario === 'Compra pontual').eventos[0]).toEqual({
+    mes: 1, tipo: 'GASTO_EXTRAORDINARIO', valor: 200
+  });
+});
+
+test('compra pontual destaca o valor que falta sem reduzir metas automaticamente', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    const compra = pedido.nomeCenario === 'Compra pontual';
+    const custo = compra ? 500 : 0;
+    await route.fulfill({ json: {
+      meses: 1, situacaoAtual: capacidade, totalReservaPlanejada: 100,
+      totalAportadoMetas: 200, evolucaoMensal: [{
+        indiceMes: 1, mesReferencia: '2026-12', rendaMensal: 2000,
+        gastosMensais: 1400, reservaPlanejada: 100,
+        aporteMetasBase: 200, aporteExtraMetas: 0,
+        gastoExtraordinario: custo, margemMensal: 300 - custo
+      }], projecoesMetas: [{ id: 1, nome: 'Notebook', valorAtual: 1000,
+        valorProjetado: 1200, progressoProjetadoPercentual: 40, valorAlvo: 3000 }]
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Compra pontual/ }).click();
+  await page.getByRole('spinbutton', { name: 'Valor da compra (despesa única)' }).fill('500');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('A compra supera o valor disponível', { exact: false })).toBeVisible();
+  await expect(page.getByTestId('disponivel-depois')).toContainText('-R$ 200,00');
+  await expect(page.getByText('R$ 200,00', { exact: false }).last()).toBeVisible();
+  await expect(page.getByText('não reduz automaticamente os valores planejados', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Projeção de cada meta' })).toHaveCount(0);
+});
+
+test('compra não é classificada como viável quando orçamento já estava negativo', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const compra = route.request().postDataJSON().nomeCenario === 'Compra pontual';
+    await route.fulfill({ json: {
+      meses: 1, situacaoAtual: capacidade,
+      evolucaoMensal: [{ indiceMes: 1, mesReferencia: '2026-12', margemMensal: compra ? -600 : -100,
+        gastoExtraordinario: compra ? 500 : 0 }], projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Compra pontual/ }).click();
+  await page.getByRole('spinbutton', { name: 'Valor da compra (despesa única)' }).fill('500');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('já não cobria os compromissos', { exact: false })).toBeVisible();
+  await expect(page.getByTestId('disponivel-antes')).toContainText('-R$ 100,00');
+  await expect(page.getByTestId('disponivel-depois')).toContainText('-R$ 600,00');
+});
+
+test('simulações de renda apresentam resultado da mudança sem tabela repetida', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const pedido = route.request().postDataJSON();
+    const novaRenda = pedido.nomeCenario === 'Aumento de renda' ? 3500 : 3000;
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: 600, evolucaoMensal: [1, 2, 3].map((i) => ({
+        indiceMes: i, mesReferencia: '2027-0' + i,
+        rendaMensal: novaRenda, gastosMensais: 1200,
+        reservaPlanejada: 300, aporteMetasBase: 200,
+        margemMensal: novaRenda - 1700
+      })), projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Aumento de renda/ }).click();
+  await page.getByRole('spinbutton', { name: 'Nova renda mensal total' }).fill('3500');
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('Variação mensal')).toBeVisible();
+  await expect(page.getByText('R$ 500,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(0);
 });

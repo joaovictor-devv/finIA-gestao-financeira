@@ -71,6 +71,6 @@ Os testes unitários e integrados da API usam H2 isolado em modo MySQL. O CI tam
 3. Meta: Notebook de R$ 3.000, R$ 1.000 já guardados, prazo de 10 meses.
 4. Dashboard: o compromisso da meta é R$ 200/mês; a margem fica em R$ 1.300.
 5. Edite a meta, confira a prévia e salve. Teste também um valor inviável.
-6. Em Simulações, experimente guardar R$ 400/mês sem metas, um gasto extraordinário no mês 2 e uma mudança de renda. Compare a folga, a reserva e os aportes; volte ao perfil para conferir que os dados reais não mudaram.
+6. Em Simulações, escolha **Compra pontual**: teste uma compra que caiba no valor disponível do próximo mês e outra que exceda esse valor. O resultado deve informar quanto restaria ou faltaria **naquele mês**, sem repetir os compromissos inalterados. Depois teste **Alterar reserva mensal** sem metas e **Planejamento personalizado** para conferir a tabela mensal; volte ao perfil e confirme que os dados reais não mudaram.
 7. Complete o progresso da meta: seu compromisso mensal deixa de pesar no orçamento.
 8. Sem chave da IA, mostre que todo o motor continua funcionando. Com chave, confirme a qualidade das explicações antes da apresentação.
