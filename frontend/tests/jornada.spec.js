@@ -166,26 +166,27 @@ test('orçamento mostra a prévia sem gravar antes de salvar', async ({ page }) 
   expect(gravacoes).toBe(1);
 });
 
-test('gráfico e evolução exibem a projeção real, inclusive saldo negativo', async ({ page }) => {
+test('a simulação mostra risco por margem negativa, sem exibir saldo bancário projetado', async ({ page }) => {
   await page.route('**/simulacoes', async route => {
-    if (route.request().method() !== 'POST') return route.fallback();
     await route.fulfill({ json: {
       meses: 3, saldoInicial: 1500, saldoFinalProjetado: -500, variacaoSaldo: -2000,
-      classificacaoFinal: 'DEFICIT', mensagem: 'O cenário exige ajustes.',
-      situacaoAtual: capacidade, totalReservaPlanejada: 0, totalAportadoMetas: 0,
+      classificacaoFinal: 'DEFICIT', mensagem: 'Mensagem antiga sobre saldo não deve aparecer.',
+      situacaoAtual: capacidade, totalReservaPlanejada: 900, totalAportadoMetas: 600,
       evolucaoMensal: [
-        { indiceMes: 1, mesReferencia: '2026-10', saldoDisponivelProjetado: 1000, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500 },
-        { indiceMes: 2, mesReferencia: '2026-11', saldoDisponivelProjetado: 0, margemMensal: -1000, rendaMensal: 3000, gastosMensais: 4000 },
-        { indiceMes: 3, mesReferencia: '2026-12', saldoDisponivelProjetado: -500, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500 }
+        { indiceMes: 1, mesReferencia: '2026-12', saldoDisponivelProjetado: 1000, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500, reservaPlanejada: 300, aporteMetasBase: 200 },
+        { indiceMes: 2, mesReferencia: '2027-01', saldoDisponivelProjetado: 0, margemMensal: -1000, rendaMensal: 3000, gastosMensais: 4000, reservaPlanejada: 300, aporteMetasBase: 200 },
+        { indiceMes: 3, mesReferencia: '2027-02', saldoDisponivelProjetado: -500, margemMensal: -500, rendaMensal: 3000, gastosMensais: 3500, reservaPlanejada: 300, aporteMetasBase: 200 }
       ], projecoesMetas: []
     } });
   });
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3m', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('img', { name: 'Gráfico de evolução do saldo' })).toBeVisible();
-  await expect(page.getByText('Seu saldo diminuiria', { exact: false })).toBeVisible();
-  await expect(page.locator('figcaption')).toContainText('-R$');
+  await expect(page.getByRole('img', { name: 'Gráfico de folga mensal' })).toBeVisible();
+  await expect(page.getByText('O orçamento ficaria negativo em 3 de 3 meses.')).toBeVisible();
+  await expect(page.getByText('Planejado para a reserva no período')).toBeVisible();
+  await expect(page.getByText('Mensagem antiga sobre saldo não deve aparecer.')).toHaveCount(0);
+  await expect(page.getByText('Saldo depois de 3 meses')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -199,31 +200,22 @@ test('dashboard apresenta déficit e valores grandes sem perder ações no celul
 });
 
 
-test('compara impacto real do cenário com orçamento sem mudanças em cada mês', async ({ page }) => {
+test('compara a folga mensal com a referência e destaca os meses afetados', async ({ page }) => {
   let chamadas = 0;
   await page.route('**/simulacoes', async route => {
     const payload = route.request().postDataJSON();
     chamadas++;
     const eReferencia = payload.nomeCenario === 'Sem mudanças';
-    const saldos = eReferencia ? [1800, 2100, 2400] : [1800, 1600, 1900];
+    const margens = eReferencia ? [300, 300, 300] : [300, -200, 300];
     await route.fulfill({ json: {
-      meses: 3,
-      saldoInicial: 1500,
-      saldoFinalProjetado: saldos[2],
-      variacaoSaldo: saldos[2] - 1500,
-      classificacaoFinal: 'SAUDAVEL',
-      mensagem: 'Projeção calculada.',
-      situacaoAtual: capacidade,
-      totalReservaPlanejada: 0,
-      totalAportadoMetas: 0,
-      evolucaoMensal: saldos.map((saldo, index) => ({
+      meses: 3, saldoInicial: 1500, saldoFinalProjetado: 2000, variacaoSaldo: 500,
+      classificacaoFinal: 'SAUDAVEL', mensagem: 'Projeção calculada.',
+      situacaoAtual: capacidade, totalReservaPlanejada: 900, totalAportadoMetas: 0,
+      evolucaoMensal: margens.map((margem, index) => ({
         indiceMes: index + 1,
         mesReferencia: ['2026-12', '2027-01', '2027-02'][index],
-        saldoDisponivelProjetado: saldo,
-        margemMensal: saldo - (index === 0 ? 1500 : saldos[index - 1]),
-        rendaMensal: 3000,
-        gastosMensais: 1200,
-        eventosAplicados: [],
+        margemMensal: margem, reservaPlanejada: 300, rendaMensal: 3000,
+        gastosMensais: 2400, aporteMetasBase: 0, aporteExtraMetas: 0, eventosAplicados: [],
       })),
       projecoesMetas: [],
     } });
@@ -231,14 +223,12 @@ test('compara impacto real do cenário com orçamento sem mudanças em cada mês
 
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3m', exact: true }).click();
-  await page.getByRole('button', { name: 'Gasto inesperado', exact: false }).click();
+  await page.getByRole('button', { name: /Gasto inesperado/ }).click();
   await page.getByRole('spinbutton', { name: 'Qual seria o valor do imprevisto?' }).fill('500');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
-  await expect(page.getByRole('img', { name: 'Gráfico de evolução do saldo' })).toBeVisible();
-  await expect(page.getByText('Saldo sem mudanças', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('impacto-cenario')).toContainText('-R$ 500,00');
-
+  await expect(page.getByRole('img', { name: 'Gráfico de folga mensal' })).toBeVisible();
+  await expect(page.getByText('O orçamento ficaria negativo em 1 de 3 meses.')).toBeVisible();
   await page.getByLabel('Mês para detalhar').selectOption('1');
   await expect(page.getByTestId('impacto-cenario')).toContainText('R$ 0,00');
   await page.getByLabel('Mês para detalhar').selectOption('2');
@@ -247,3 +237,60 @@ test('compara impacto real do cenário com orçamento sem mudanças em cada mês
   expect(chamadas).toBe(2);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('permite planejar reserva sem nenhuma meta, sem confundir folga com economia', async ({ page }) => {
+  let payloadSimulado;
+  await page.route('**/metas', route => route.fulfill({ json: [] }));
+  await page.route('**/analise/capacidade-gastos', route => route.fulfill({ json: {
+    ...capacidade, reservaPlanejada: 0, comprometimentoMensalMetas: 0, margemAposMetas: 1800,
+  } }));
+  await page.route('**/simulacoes', async route => {
+    const payload = route.request().postDataJSON();
+    const referencia = payload.nomeCenario === 'Sem mudanças';
+    if (!referencia) payloadSimulado = payload;
+    const reservaMensal = referencia ? 0 : payload.reservaMensal;
+    await route.fulfill({ json: {
+      meses: 3, saldoInicial: 1500, saldoFinalProjetado: 5000, variacaoSaldo: 3500,
+      classificacaoFinal: 'SAUDAVEL', mensagem: 'Saldo não é o foco.',
+      situacaoAtual: capacidade, totalReservaPlanejada: reservaMensal * 3, totalAportadoMetas: 0,
+      evolucaoMensal: [1, 2, 3].map((i) => ({
+        indiceMes: i, mesReferencia: ['2026-12', '2027-01', '2027-02'][i - 1],
+        margemMensal: 1800 - reservaMensal, reservaPlanejada: reservaMensal,
+        rendaMensal: 3000, gastosMensais: 1200, aporteMetasBase: 0, aporteExtraMetas: 0, eventosAplicados: [],
+      })),
+      projecoesMetas: [],
+    } });
+  });
+
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: /Guardar dinheiro/ }).click();
+  await page.getByRole('spinbutton', { name: 'Quanto pretende guardar por mês neste cenário?' }).fill('500');
+  await page.getByRole('button', { name: '3m', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+
+  expect(payloadSimulado.reservaMensal).toBe(500);
+  await expect(page.getByText('Você não tem metas cadastradas.', { exact: false })).toBeVisible();
+  await expect(page.getByText('R$ 1.500,00', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Reserva acumulada' }).click();
+  await expect(page.getByTestId('impacto-cenario')).toContainText('+R$ 1.500,00');
+  await expect(page.getByRole('button', { name: 'Aportes acumulados às metas' })).toHaveCount(0);
+  await expect(page.getByText('Saldo não é o foco.')).toHaveCount(0);
+});
+
+test('sem reserva definida, recomenda planejamento sem dizer que a folga foi guardada', async ({ page }) => {
+  await page.route('**/metas', route => route.fulfill({ json: [] }));
+  await page.route('**/simulacoes', route => route.fulfill({ json: {
+    meses: 1, saldoInicial: 0, saldoFinalProjetado: 1200,
+    classificacaoFinal: 'SAUDAVEL', situacaoAtual: capacidade,
+    totalReservaPlanejada: 0, totalAportadoMetas: 0,
+    evolucaoMensal: [{ indiceMes: 1, mesReferencia: '2026-12',
+      margemMensal: 1200, reservaPlanejada: 0, rendaMensal: 2000,
+      gastosMensais: 800, aporteMetasBase: 0, aporteExtraMetas: 0 }],
+    projecoesMetas: [],
+  } }));
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('Você não planejou separar dinheiro para uma reserva', { exact: false })).toBeVisible();
+  await expect(page.getByText('A folga acumulada é a soma das margens mensais', { exact: false })).toBeVisible();
+});
+
