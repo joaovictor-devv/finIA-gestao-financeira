@@ -311,6 +311,81 @@ class MotorSimulacaoServiceTest {
     }
 
     @Test
+    void reducaoDeRendaPodeLimitarAportesPelasPrioridadesSemAlterarMetasRegistradas() {
+        Meta urgente = meta(1, "Curso", "1200", "0", 4, "alta");
+        Meta secundaria = meta(2, "Viagem", "1200", "0", 4, "baixa");
+        SimulacaoFinanceiraRequest pedido = request(3);
+        pedido.setEventos(List.of(evento(1, "ALTERAR_RENDA", "1800", null)));
+        pedido.setAjustarAportesAoOrcamento(true);
+
+        CapacidadeFinanceira capacidade = capacidade("3000", "1400", "300", "600", "2000");
+        ResultadoSimulacaoFinanceira ajustada = service.simular(pedido, capacidade, List.of(secundaria, urgente));
+
+        assertThat(ajustada.getTotalAportadoMetas()).isEqualByComparingTo("300");
+        assertThat(ajustada.getProjecoesMetas()).extracting(ProjecaoMeta::getValorProjetado)
+                .containsExactlyInAnyOrder(dinheiro("0"), dinheiro("300"));
+        assertThat(ajustada.getProjecoesMetas().stream()
+                .filter(m -> m.getId() == 1).findFirst().orElseThrow().getValorProjetado())
+                .isEqualByComparingTo("300");
+        assertThat(ajustada.getEvolucaoMensal()).allSatisfy(mes -> {
+            assertThat(mes.getMargemMensal()).isZero();
+            assertThat(mes.getAporteMetasBase()).isEqualByComparingTo("100");
+        });
+
+        assertThat(urgente.getValorInicial()).isZero();
+        assertThat(secundaria.getValorInicial()).isZero();
+        assertThat(capacidade.getRendaMensal()).isEqualByComparingTo("3000");
+
+        pedido.setAjustarAportesAoOrcamento(false);
+        ResultadoSimulacaoFinanceira semAjuste = service.simular(pedido, capacidade, List.of(secundaria, urgente));
+        assertThat(semAjuste.getEvolucaoMensal().get(0).getMargemMensal()).isEqualByComparingTo("-500");
+        assertThat(semAjuste.getTotalAportadoMetas()).isEqualByComparingTo("1800");
+    }
+
+    @Test
+    void ajusteDeAportesNaoInventaDinheiroSeDespesasEReservaJaUltrapassamRenda() {
+        Meta meta = meta(1, "Computador", "1200", "0", 4, "alta");
+        SimulacaoFinanceiraRequest pedido = request(2);
+        pedido.setAjustarAportesAoOrcamento(true);
+        pedido.setEventos(List.of(evento(1, "ALTERAR_RENDA", "1000", null)));
+        ResultadoSimulacaoFinanceira resultado = service.simular(
+                pedido, capacidade("3000", "1400", "300", "300", "0"), List.of(meta));
+        assertThat(resultado.getTotalAportadoMetas()).isZero();
+        assertThat(resultado.getEvolucaoMensal().get(0).getMargemMensal()).isEqualByComparingTo("-700");
+        assertThat(resultado.getProjecoesMetas().get(0).getValorProjetado()).isZero();
+    }
+
+    @Test
+    void aporteExtraDeMetaEspecificaNaoMigraParaOutraAposConcluir() {
+        Meta curso = meta(1, "Curso", "150", "0", 3, "alta");
+        Meta viagem = meta(2, "Viagem", "1200", "0", 12, "baixa");
+        SimulacaoFinanceiraRequest pedido = request(2);
+        pedido.setAporteExtraMetasMensal(dinheiro("500"));
+        pedido.setMetaPrioritariaId(1L);
+
+        ResultadoSimulacaoFinanceira resultado = service.simular(pedido,
+                capacidade("3000", "1000", "300", "150", "0"), List.of(curso, viagem));
+
+        assertThat(resultado.getTotalAportadoMetas()).isEqualByComparingTo("350");
+        assertThat(resultado.getProjecoesMetas().stream().filter(m -> m.getId() == 1)
+                .findFirst().orElseThrow().getValorProjetado()).isEqualByComparingTo("150");
+        assertThat(resultado.getProjecoesMetas().stream().filter(m -> m.getId() == 2)
+                .findFirst().orElseThrow().getValorProjetado()).isEqualByComparingTo("200");
+        assertThat(resultado.getEvolucaoMensal().get(0).getAporteExtraMetas()).isEqualByComparingTo("100");
+        assertThat(resultado.getEvolucaoMensal().get(1).getAporteExtraMetas()).isZero();
+    }
+
+    @Test
+    void naoCombinaAutomaticamenteLimiteDeAporteComAporteExtra() {
+        SimulacaoFinanceiraRequest pedido = request(2);
+        pedido.setAjustarAportesAoOrcamento(true);
+        pedido.setAporteExtraMetasMensal(dinheiro("200"));
+        assertThatThrownBy(() -> service.simular(pedido, capacidade("3000", "1000", "300", "0", "0"), List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("não pode ser combinado");
+    }
+
+    @Test
     void deveRejeitarMetaReferenciadaQueNaoExiste() {
         SimulacaoFinanceiraRequest request = request(3);
         request.setMetaPrioritariaId(99L);
