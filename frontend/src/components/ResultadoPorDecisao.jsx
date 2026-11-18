@@ -1,5 +1,4 @@
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
-import EvolucaoMetasRenda from "./EvolucaoMetasRenda";
 
 const n = (valor) => Number.isFinite(Number(valor)) ? Number(valor) : 0;
 const mesesDeficit = (meses) => (meses || []).filter((item) => n(item.margemMensal) < -0.005).length;
@@ -8,7 +7,7 @@ function Dado({ titulo, valor, destaque = false, teste }) {
   return (
     <div className={"rounded-xl border p-4 " + (destaque ? "border-cyan-200 bg-cyan-50" : "border-slate-200 bg-white")}>
       <p className="text-xs font-semibold leading-5 text-slate-600">{titulo}</p>
-      <p data-testid={teste} className={"finia-number mt-2 text-lg font-extrabold " + (typeof valor === "number" && valor < 0 ? "text-red-700" : "text-slate-900")}>
+      <p data-testid={teste} className={"finia-number mt-2 break-words text-lg font-extrabold " + (typeof valor === "number" && valor < 0 ? "text-red-700" : "text-slate-900")}>
         {typeof valor === "number" ? formatarMoeda(valor) : valor}
       </p>
     </div>
@@ -85,37 +84,44 @@ function AvaliacaoDespesa({ cenario, resultado, comparacao, valorInformado, mesE
   );
 }
 
-function AvaliacaoRenda({ resultado, comparacao, cenario, ajusteAportes }) {
+function AvaliacaoRenda({ resultado, comparacao }) {
   const mes = resultado.evolucaoMensal?.[0];
   const ref = comparacao?.evolucaoMensal?.[0];
   if (!mes) return <p>Não há dados para avaliar a alteração de renda.</p>;
   const atual = ref ? n(ref.rendaMensal) : n(resultado.situacaoAtual?.rendaMensal);
   const nova = n(mes.rendaMensal);
+  const variacao = nova - atual;
   const deficit = mesesDeficit(resultado.evolucaoMensal);
   const deficitBase = comparacao ? mesesDeficit(comparacao.evolucaoMensal) : null;
-  return <div className="mt-5 space-y-4">
-    <Diagnostico
-      titulo={deficit ? "Com a nova renda, o orçamento teria déficit em " + deficit + " mês(es)." : "A renda simulada cobre os compromissos mensais."}
-      texto={deficit
-        ? "Revise despesas, reserva e aportes antes de assumir que os valores planejados continuarão viáveis."
-        : "A alteração é aplicada a partir do primeiro mês e se repete nos meses seguintes, enquanto os demais parâmetros permanecem iguais."}
-      alerta={deficit > 0}
-    />
-    <div className="grid gap-3 sm:grid-cols-3">
-      <Dado titulo="Renda mensal anterior" valor={atual} />
-      <Dado titulo="Nova renda mensal" valor={nova} />
-      <Dado titulo="Variação mensal" valor={nova - atual} destaque />
+
+  return (
+    <div className="mt-5 space-y-4" data-testid="resumo-renda">
+      <Diagnostico
+        titulo={deficit
+          ? "O orçamento teria déficit em " + deficit + " mês(es)."
+          : "A renda simulada cobre os compromissos mensais."}
+        texto={deficit
+          ? "Considere rever despesas, reserva e aportes antes de assumir todos os compromissos."
+          : "A nova renda foi considerada em todo o período, mantendo os demais parâmetros informados."}
+        alerta={deficit > 0}
+      />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Dado titulo="Renda mensal atual" valor={atual} />
+        <Dado titulo="Renda mensal simulada" valor={nova} />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3">
+        <span className="text-sm font-bold text-cyan-950">Variação mensal</span>
+        <span data-testid="variacao-renda" className={"finia-number text-xl font-extrabold " + (variacao < 0 ? "text-red-700" : "text-cyan-900")}>
+          {variacao > 0 ? "+" : ""}{formatarMoeda(variacao)}
+        </span>
+      </div>
+      {deficitBase !== null && (deficit > 0 || deficitBase > 0) && (
+        <p className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+          Meses com orçamento negativo: <strong>{deficitBase} antes</strong> e <strong>{deficit} após a alteração</strong>.
+        </p>
+      )}
     </div>
-    {deficitBase !== null && <p className="text-sm text-slate-700">
-      Meses com orçamento negativo: <strong>{deficitBase} antes</strong> e <strong>{deficit} após a alteração</strong>.
-    </p>}
-    <p className="text-xs leading-5 text-slate-600">
-      {cenario === "reducao" && ajusteAportes
-        ? "Os aportes das metas foram limitados ao que sobra após despesas e reserva. Se a renda não cobrir nem esses compromissos, o cenário continuará com déficit."
-        : "Os aportes planejados continuam iguais, salvo se você decidir alterar quanto destina a uma meta. A renda, por si, não movimenta dinheiro."}
-    </p>
-    <EvolucaoMetasRenda resultado={resultado} comparacao={comparacao} cenario={cenario} ajusteAportes={ajusteAportes} />
-  </div>;
+  );
 }
 
 function AvaliacaoReserva({ resultado, comparacao }) {
@@ -176,14 +182,14 @@ function AvaliacaoAporte({ resultado, comparacao, metaId, metaOriginal, aporteEx
   </div>;
 }
 
-export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId, metaOriginal, aporteExtra, ajusteAportes = false }) {
+export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId, metaOriginal, aporteExtra }) {
   if (!resultado) return null;
   if (cenario === "compra" || cenario === "imprevisto") {
     return <AvaliacaoDespesa cenario={cenario} resultado={resultado} comparacao={comparacao}
       valorInformado={valorInformado} mesEvento={mesEvento} />;
   }
   if (cenario === "aumento" || cenario === "reducao") {
-    return <AvaliacaoRenda resultado={resultado} comparacao={comparacao} cenario={cenario} ajusteAportes={ajusteAportes} />;
+    return <AvaliacaoRenda resultado={resultado} comparacao={comparacao} />;
   }
   if (cenario === "guardar") return <AvaliacaoReserva resultado={resultado} comparacao={comparacao} />;
   if (cenario === "aporte") return <AvaliacaoAporte resultado={resultado} comparacao={comparacao} metaId={metaId} metaOriginal={metaOriginal} aporteExtra={aporteExtra} />;
