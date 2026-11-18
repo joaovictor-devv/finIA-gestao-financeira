@@ -166,7 +166,7 @@ public class MotorSimulacaoService {
         List<ProjecaoMeta> projecoesMetas = montarProjecoesMetas(estadosMetas);
         String classificacaoFinal = evolucao.get(evolucao.size() - 1).getClassificacao();
         BigDecimal variacaoSaldo = saldo.subtract(saldoInicial);
-        String mensagem = gerarMensagem(classificacaoFinal, saldo, variacaoSaldo, meses);
+        String mensagem = gerarMensagem(evolucao);
         String nomeCenario = request.getNomeCenario() == null || request.getNomeCenario().isBlank()
                 ? "Simulação personalizada"
                 : request.getNomeCenario().trim();
@@ -409,23 +409,29 @@ public class MotorSimulacaoService {
         return "SAUDAVEL";
     }
 
-    private String gerarMensagem(String classificacaoFinal,
-                                 BigDecimal saldoFinal,
-                                 BigDecimal variacaoSaldo,
-                                 int meses) {
-        return switch (classificacaoFinal) {
-            case "DEFICIT", "DEFICIT_MENSAL" ->
-                    "Neste cenário, a projeção termina em déficit. Revise gastos, renda ou aportes antes de considerar este cenário seguro.";
-            case "SEM_RENDA" ->
-                    "A simulação termina sem renda mensal suficiente para sustentar o cenário.";
-            case "EQUILIBRADA" ->
-                    "Ao final de " + meses + " meses, toda a renda projetada estaria comprometida, sem margem mensal para imprevistos.";
-            case "APERTADA" ->
-                    "O cenário permanece possível, mas termina com pouca margem financeira. O saldo disponível projetado é de R$ " + saldoFinal + ".";
-            default -> variacaoSaldo.compareTo(BigDecimal.ZERO) >= 0
-                    ? "O cenário termina saudável após " + meses + " meses, com variação de saldo disponível de R$ " + variacaoSaldo + "."
-                    : "O cenário termina saudável, mas com redução do saldo disponível de R$ " + variacaoSaldo.abs() + ".";
-        };
+    private String gerarMensagem(List<ProjecaoMensal> evolucao) {
+        long mesesComDeficit = evolucao.stream()
+                .filter(mes -> mes.getMargemMensal().compareTo(BigDecimal.ZERO) < 0)
+                .count();
+        if (mesesComDeficit > 0) {
+            return "Neste cenário, os compromissos mensais superam a renda em "
+                    + mesesComDeficit + " mês(es). Revise gastos, valores para guardar ou aportes às metas.";
+        }
+
+        long mesesSemFolga = evolucao.stream()
+                .filter(mes -> mes.getMargemMensal().compareTo(BigDecimal.ZERO) == 0)
+                .count();
+        if (mesesSemFolga > 0) {
+            return "O orçamento cobre os compromissos, mas não deixa folga em "
+                    + mesesSemFolga + " mês(es) para gastos não planejados.";
+        }
+
+        BigDecimal menorFolga = evolucao.stream()
+                .map(ProjecaoMensal::getMargemMensal)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+        return "O orçamento cobre despesas e valores planejados para guardar em todos os "
+                + evolucao.size() + " meses. A menor folga mensal seria de R$ " + menorFolga + ".";
     }
 
     private void validarBase(SimulacaoFinanceiraRequest request) {
