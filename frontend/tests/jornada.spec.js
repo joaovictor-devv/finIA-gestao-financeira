@@ -170,7 +170,7 @@ test('orçamento mostra a prévia sem gravar antes de salvar', async ({ page }) 
   });
   await page.goto('/planejamento');
   await page.getByLabel('Despesas mensais').fill('2800');
-  await expect(page.getByText('Os compromissos ultrapassam a renda.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Os compromissos superam a renda em', { exact: false })).toBeVisible();
   expect(gravacoes).toBe(0);
   await page.getByRole('button', { name: 'Salvar orçamento' }).click();
   await expect(page.getByRole('status')).toContainText('Orçamento salvo');
