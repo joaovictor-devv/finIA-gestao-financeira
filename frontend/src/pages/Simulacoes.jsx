@@ -37,6 +37,9 @@ function Simulacoes() {
   const [gastosPersonalizados, setGastosPersonalizados] = useState("");
   const [reservaPersonalizada, setReservaPersonalizada] = useState("");
   const [metaId, setMetaId] = useState("");
+  const [ajustarAportesRenda, setAjustarAportesRenda] = useState(true);
+  const [destinarAumentoMeta, setDestinarAumentoMeta] = useState(false);
+  const [extraRendaMeta, setExtraRendaMeta] = useState("");
   const [resultado, setResultado] = useState(null);
   const [comparacao, setComparacao] = useState(null);
   const [ultimoPayload, setUltimoPayload] = useState(null);
@@ -74,6 +77,13 @@ function Simulacoes() {
 
   const cenarioAtual = useMemo(() => cenarios.find((item) => item.id === cenario), [cenario]);
   const cenarioCompleto = cenario === "normal" || cenario === "personalizado";
+  const metaSelecionada = metas.find((meta) => String(meta.id) === String(metaId));
+  const restanteMeta = metaSelecionada ? Math.max(0, numero(metaSelecionada.valorAlvo) - numero(metaSelecionada.valorInicial)) : 0;
+  // A regra coincide com a divisão com arredondamento para cima do motor Java.
+  const aporteBaseMeta = metaSelecionada && Number(metaSelecionada.prazoMeses) > 0
+    ? Math.ceil((restanteMeta / Number(metaSelecionada.prazoMeses)) * 100 - 0.0000001) / 100
+    : 0;
+  const disponibilidadeParaExtra = numero(capacidade?.margemAposMetas);
 
   function limparResultado() {
     setResultado(null);
@@ -93,6 +103,9 @@ function Simulacoes() {
     setErro("");
     setMesEvento(1);
     setValor("");
+    setAjustarAportesRenda(true);
+    setDestinarAumentoMeta(false);
+    setExtraRendaMeta("");
 
     if (capacidade) {
       setNovaRenda(String(capacidade.rendaMensal ?? ""));
@@ -123,6 +136,13 @@ function Simulacoes() {
         tipo: "ALTERAR_RENDA",
         valor: numero(novaRenda),
       });
+      if (cenario === "reducao" && ajustarAportesRenda && metas.length > 0) {
+        payload.ajustarAportesAoOrcamento = true;
+      }
+      if (cenario === "aumento" && destinarAumentoMeta && metas.length > 0) {
+        payload.aporteExtraMetasMensal = numero(extraRendaMeta);
+        payload.metaPrioritariaId = Number(metaId);
+      }
     }
 
     if (cenario === "guardar") {
@@ -168,6 +188,18 @@ function Simulacoes() {
 
     if (cenario === "aporte" && metas.length === 0) {
       return "Crie uma meta antes de testar um valor extra para ela.";
+    }
+    if ((cenario === "aporte" || (cenario === "aumento" && destinarAumentoMeta))
+        && (!metaSelecionada || restanteMeta <= 0)) {
+      return "Escolha uma meta que ainda tenha um valor a alcançar.";
+    }
+    if (cenario === "aumento" && destinarAumentoMeta
+        && (!extraRendaMeta.trim() || numero(extraRendaMeta) <= 0)) {
+      return "Informe um aporte extra mensal maior que zero para a meta escolhida.";
+    }
+    if (cenario === "aumento" && destinarAumentoMeta
+        && numero(extraRendaMeta) > numero(novaRenda) - rendaAtual) {
+      return "O aporte adicional não pode superar o aumento da renda informado.";
     }
 
     if (cenario === "personalizado" && eventos.some((e) => !e.valor.trim() || !Number.isInteger(Number(e.mes)) || Number(e.mes) < 1 || Number(e.mes) > meses)) {
@@ -312,13 +344,57 @@ function Simulacoes() {
             )}
 
             {(cenario === "aumento" || cenario === "reducao") && (
-              <CurrencyInput
-                label="Nova renda mensal total"
-                ajuda={`Hoje sua renda é ${formatarMoeda(capacidade?.rendaMensal)}.`}
-                value={novaRenda}
-                onChange={(event) => setNovaRenda(event.target.value)}
-                required
-              />
+              <>
+                <CurrencyInput
+                  label="Nova renda mensal total"
+                  ajuda={`Renda atual: ${formatarMoeda(capacidade?.rendaMensal)}. Informe o novo valor total, não apenas a diferença.`}
+                  value={novaRenda}
+                  onChange={(event) => setNovaRenda(event.target.value)}
+                  required
+                />
+                {cenario === "reducao" && metas.length > 0 && (
+                  <label className="flex items-start gap-3 rounded-xl border border-cyan-100 bg-cyan-50/60 p-4">
+                    <input type="checkbox" checked={ajustarAportesRenda}
+                      onChange={(event) => { setAjustarAportesRenda(event.target.checked); limparResultado(); }}
+                      className="mt-1 h-4 w-4 accent-cyan-700" />
+                    <span>
+                      <span className="block text-sm font-bold text-slate-800">Adaptar os aportes das metas à renda disponível</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-600">
+                        Se a renda não cobrir os aportes previstos, o simulador reduzirá apenas os valores das metas,
+                        priorizando as mais importantes. Despesas e reserva permanecem iguais.
+                        Desmarque para ver o resultado caso tente manter todos os aportes atuais.
+                      </span>
+                    </span>
+                  </label>
+                )}
+                {cenario === "aumento" && metas.some((meta) => numero(meta.valorAlvo) > numero(meta.valorInicial)) && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <label className="flex items-start gap-3">
+                      <input type="checkbox" checked={destinarAumentoMeta}
+                        onChange={(event) => { setDestinarAumentoMeta(event.target.checked); limparResultado(); }}
+                        className="mt-1 h-4 w-4 accent-cyan-700" />
+                      <span className="text-sm font-bold text-slate-800">Usar parte do aumento da renda para antecipar uma meta</span>
+                    </label>
+                    {destinarAumentoMeta && (
+                      <div className="mt-4 space-y-4">
+                        <label className="block text-sm font-bold text-slate-700">
+                          Meta que receberá os novos aportes
+                          <select value={metaId} onChange={(event) => { setMetaId(event.target.value); limparResultado(); }}
+                            className="finia-input mt-2 h-12 px-4">
+                            {metas.filter((meta) => numero(meta.valorAlvo) > numero(meta.valorInicial))
+                              .map((meta) => <option key={meta.id} value={meta.id}>{meta.nome}</option>)}
+                          </select>
+                        </label>
+                        <CurrencyInput label="Valor extra mensal destinado à meta"
+                          ajuda={`Esse valor será somado ao aporte já previsto para a meta, limitado ao aumento de renda: ${formatarMoeda(Math.max(0, numero(novaRenda) - numero(capacidade?.rendaMensal)))}.`}
+                          value={extraRendaMeta}
+                          onChange={(event) => setExtraRendaMeta(event.target.value)}
+                          required />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {cenario === "guardar" && (
@@ -334,22 +410,43 @@ function Simulacoes() {
 
             {cenario === "aporte" && (
               <>
+                <label className="block">
+                  <span className="text-sm font-bold text-[#0A192F]">Meta que receberá o aporte</span>
+                  <select value={metaId} onChange={(event) => { setMetaId(event.target.value); limparResultado(); }}
+                    className="finia-input mt-2 h-12 px-4">
+                    {metas.filter((meta) => numero(meta.valorAlvo) > numero(meta.valorInicial))
+                      .map((meta) => <option key={meta.id} value={meta.id}>{meta.nome}</option>)}
+                  </select>
+                </label>
+                {metaSelecionada && (
+                  <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm leading-6 text-slate-700">
+                    <p>Aporte mensal já previsto para cumprir o prazo: <strong data-testid="aporte-minimo-meta">{formatarMoeda(aporteBaseMeta)}</strong></p>
+                    <p>Restante da meta: <strong>{formatarMoeda(restanteMeta)}</strong> em {metaSelecionada.prazoMeses} meses.</p>
+                    <p className="mt-2 text-xs text-slate-600">
+                      O valor mensal acima já está incluído no orçamento. Informe abaixo somente
+                      o quanto pretende adicionar, sem repetir o aporte previsto.
+                    </p>
+                  </div>
+                )}
                 <CurrencyInput
-                  label="Aporte adicional mensal para a meta"
-                  value={valor}
-                  onChange={(event) => setValor(event.target.value)}
-                  placeholder="200,00"
-                  required
+                  label="Quanto deseja adicionar por mês?"
+                  ajuda="O valor digitado é adicional ao aporte mensal já planejado."
+                  value={valor} onChange={(event) => setValor(event.target.value)}
+                  placeholder="200" required
                 />
-                {metas.length > 0 ? (
-                  <label className="block">
-                    <span className="text-sm font-bold text-[#0A192F]">Qual meta deve receber esse valor?</span>
-                    <select value={metaId} onChange={(event) => setMetaId(event.target.value)} className="finia-input mt-2 h-12 px-4">
-                      {metas.map((meta) => <option key={meta.id} value={meta.id}>{meta.nome}</option>)}
-                    </select>
-                  </label>
-                ) : (
-                  <p className="rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">Crie uma meta primeiro para testar um aporte maior.</p>
+                {metaSelecionada && numero(valor) > 0 && (
+                  <div className="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                    Aporte total mensal para esta meta: <strong>{formatarMoeda(aporteBaseMeta + numero(valor))}</strong>.
+                    {numero(valor) > disponibilidadeParaExtra + 0.005 && (
+                      <p className="mt-2 font-semibold text-amber-800">
+                        Esse valor adicional supera a disponibilidade mensal atual de {formatarMoeda(disponibilidadeParaExtra)}.
+                        A simulação mostrará se o orçamento fica negativo.
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-slate-500">
+                      Ao atingir o valor-alvo, os aportes são interrompidos. O excedente não será transferido automaticamente a outras metas.
+                    </p>
+                  </div>
                 )}
               </>
             )}
@@ -430,6 +527,7 @@ function Simulacoes() {
                 valorInformado={ultimoPayload?.eventos?.[0]?.valor}
                 mesEvento={ultimoPayload?.eventos?.[0]?.mes || 1}
                 metaId={ultimoPayload?.metaPrioritariaId}
+                ajusteAportes={Boolean(ultimoPayload?.ajustarAportesAoOrcamento)}
               />
             )
           )}
