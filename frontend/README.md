@@ -47,3 +47,6 @@ A tela `/insights` mantém até 60 mensagens em `sessionStorage` **somente na ab
 
 Em `/simulacoes`, cada opção de decisão exibe somente os indicadores pertinentes. **Compra pontual** analisa um único mês e não altera automaticamente os aportes à reserva ou às metas; se o orçamento do mês ficar negativo, alerta sobre a necessidade de revisão ou de recursos livres anteriores. Os cenários completos (orçamento atual e personalizado) não exibem mais a tabela mensal repetitiva: apenas meses com alterações reais ou previsão de conclusão de metas aparecem em um resumo de acontecimentos. Se todos os meses forem iguais, essa seção não aparece. O valor mensal disponível mais baixo recebe atenção especial. Não há gráficos de linhas.
 
+### Projeção das metas nas Simulações
+
+Os cartões de meta exibem **o valor projetado ao final do período**, o percentual do objetivo alcançado e quanto ainda faltaria. A comparação com o planejamento atual aparece **somente quando existir mudança no valor projetado ou na data prevista de conclusão**, sem repetir números idênticos ou a frase gerada de avanço. O valor já registrado pelo usuário não muda automaticamente quando a simulação é executada: é atualizado pela ação **Atualizar progresso** na página Metas; as projeções são condicionais aos aportes planejados.

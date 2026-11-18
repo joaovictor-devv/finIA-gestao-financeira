@@ -5,6 +5,7 @@ import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import ResultadoPorDecisao from "../components/ResultadoPorDecisao";
 import MudancasRelevantes from "../components/MudancasRelevantes";
+import ResumoMetasSimuladas from "../components/ResumoMetasSimuladas";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
@@ -452,45 +453,8 @@ function Simulacoes() {
 
           {cenarioCompleto && <MudancasRelevantes resultado={resultado} comparacao={comparacao} />}
 
-          {cenarioCompleto && resultado.projecoesMetas?.length > 0 && (
-            <section className="finia-card mt-6 p-6 sm:p-8">
-              <h2 className="text-xl font-extrabold text-[#0A192F]">Projeção de cada meta</h2>
-              <p className="mt-1 text-sm text-slate-600">Os valores pressupõem que todos os aportes planejados sejam realizados.</p>
-              {resultado.evolucaoMensal?.some((mes) => numero(mes.margemMensal) < 0) && (
-                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                  Há meses com renda insuficiente para despesas, reserva e metas. O avanço projetado não é garantido:
-                  para manter esses aportes, será necessário ajustar o orçamento ou utilizar recursos já disponíveis.
-                </p>
-              )}
-              <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                {resultado.projecoesMetas.map((meta) => (
-                  <article key={meta.id} className="rounded-2xl border border-slate-200 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <h3 className="font-extrabold text-[#0A192F]">{meta.nome}</h3>
-                      {meta.concluidaNoPeriodo && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Concluída no cenário</span>}
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                      <MiniInfo label="Hoje" valor={formatarMoeda(meta.valorAtual)} />
-                      <MiniInfo label="Depois" valor={formatarMoeda(meta.valorProjetado)} destaque />
-                    </div>
-                    <p className="mt-4 text-sm font-bold text-slate-700">
-                      Progresso previsto: {Number(meta.progressoProjetadoPercentual || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
-                      {" "}do valor necessário de {formatarMoeda(meta.valorAlvo)}.
-                    </p>
-                    {comparacao?.projecoesMetas?.find((item) => item.id === meta.id) && (
-                      <p className="mt-3 text-xs font-bold text-slate-600">
-                        Sem mudanças: {formatarMoeda(comparacao.projecoesMetas.find((item) => item.id === meta.id).valorProjetado)} ao final
-                      </p>
-                    )}
-                    <p className="mt-3 text-sm leading-6 text-slate-600">
-                      {meta.concluidaNoPeriodo && meta.mesConclusaoReferencia
-                        ? `Nesse cenário, a meta seria concluída por volta de ${formatarMesReferencia(meta.mesConclusaoReferencia)}.`
-                        : meta.impacto}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
+          {cenarioCompleto && (
+            <ResumoMetasSimuladas resultado={resultado} comparacao={comparacao} />
           )}
 
           <section className="mt-6 rounded-2xl bg-[#0A192F] p-6 text-white sm:p-8">

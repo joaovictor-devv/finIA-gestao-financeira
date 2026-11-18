@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -365,8 +366,10 @@ public class MotorSimulacaoService {
             } else if (concluida) {
                 impacto = "A meta seria concluída dentro do período simulado.";
             } else if (valorProjetado.compareTo(valorAtual) > 0) {
-                impacto = "A meta avançaria R$ " + valorProjetado.subtract(valorAtual)
-                        + " durante o período simulado.";
+                impacto = "Os aportes planejados acrescentariam "
+                        + NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+                                .format(valorProjetado.subtract(valorAtual))
+                        + " à meta durante o período simulado.";
             } else {
                 impacto = "Não houve avanço projetado para esta meta.";
             }

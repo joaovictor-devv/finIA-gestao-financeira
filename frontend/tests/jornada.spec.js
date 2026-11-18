@@ -389,9 +389,11 @@ test('metas e planejamento continuam explicativos sem gráficos', async ({ page 
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('heading', { name: 'Projeção de cada meta' })).toBeVisible();
-  await expect(page.getByText('Progresso previsto: 40%')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'O que acontecerá com suas metas?' })).toBeVisible();
+  await expect(page.getByText('40% do objetivo')).toBeVisible();
   await expect(page.getByText('R$ 1.200,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('resumo-meta').first().getByText('Ainda faltaria').first()).toBeVisible();
+  await expect(page.getByTestId('diferenca-meta')).toContainText('R$ 100,00');
   await expect(page.getByTestId('mudancas-relevantes')).toHaveCount(0);
   await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByRole('img', { name: /Gráfico de/ })).toHaveCount(0);
@@ -688,5 +690,101 @@ test('conclusão de meta vira marco mesmo com orçamento igual nos meses anterio
   const marcos = page.getByTestId('mudancas-relevantes');
   await expect(marcos).toContainText('Meta Notebook: valor-alvo previsto para este mês');
   await expect(marcos).toContainText('fev/27');
+  await expect(page.getByRole('heading', { name: 'O que acontecerá com suas metas?' })).toBeVisible();
   await expect(page.getByRole('table')).toHaveCount(0);
+});
+
+
+test('meta iniciada em zero mostra só previsão, restante e percentual sem blocos redundantes', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    await route.fulfill({ json: {
+      meses: 6, situacaoAtual: capacidade, totalReservaPlanejada: 1800,
+      totalAportadoMetas: 10192.38,
+      evolucaoMensal: Array.from({ length: 6 }, (_, index) => ({
+        indiceMes: index + 1, mesReferencia: '2027-0' + (index + 1),
+        rendaMensal: 3000, gastosMensais: 1000,
+        reservaPlanejada: 300, aporteMetasBase: 1698.73,
+        aporteExtraMetas: 0, margemMensal: 1.27,
+      })),
+      projecoesMetas: [
+        { id: 1, nome: 'oi', valorAtual: 0, valorAlvo: 100000,
+          valorProjetado: 7692.36, progressoProjetadoPercentual: 7.7,
+          concluidaNoPeriodo: false, impacto: 'A meta avançaria R$ 7692.36 durante o período simulado.' },
+        { id: 2, nome: 'teste', valorAtual: 0, valorAlvo: 5000,
+          valorProjetado: 2500.02, progressoProjetadoPercentual: 50,
+          concluidaNoPeriodo: false, impacto: 'A meta avançaria R$ 2500.02 durante o período simulado.' },
+      ]
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const cartoes = page.getByTestId('resumo-meta');
+  await expect(cartoes).toHaveCount(2);
+  await expect(cartoes.nth(0)).toContainText('R$ 7.692,36');
+  await expect(cartoes.nth(0)).toContainText('R$ 92.307,64');
+  await expect(cartoes.nth(0)).toContainText('7,7% do objetivo');
+  await expect(cartoes.nth(1)).toContainText('R$ 2.500,02');
+  await expect(cartoes.nth(1)).toContainText('R$ 2.499,98');
+  await expect(cartoes.nth(1)).toContainText('50% do objetivo');
+  await expect(page.getByText('Hoje', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Depois', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Sem mudanças:', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('A meta avançaria', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Aportes previstos neste período', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Atualizar o valor guardado em Metas' })).toHaveAttribute('href', '/metas');
+});
+
+test('comparação de meta só aparece quando cenário realmente altera a previsão', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const base = route.request().postDataJSON().nomeCenario === 'Sem mudanças';
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: 600,
+      evolucaoMensal: [1, 2, 3].map((i) => ({
+        indiceMes: i, mesReferencia: '2027-0' + i,
+        rendaMensal: 3000, gastosMensais: 1200, reservaPlanejada: 300,
+        aporteMetasBase: 200, margemMensal: 1300,
+      })),
+      projecoesMetas: [
+        { id: 1, nome: 'Meta com mudança', valorAtual: 200, valorAlvo: 4000,
+          valorProjetado: base ? 1000 : 1200, concluidaNoPeriodo: false },
+        { id: 2, nome: 'Meta sem mudança', valorAtual: 0, valorAlvo: 10000,
+          valorProjetado: 2000, concluidaNoPeriodo: false },
+      ],
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const cartoes = page.getByTestId('resumo-meta');
+  await expect(cartoes).toHaveCount(2);
+  await expect(cartoes.nth(0).getByTestId('diferenca-meta')).toContainText('R$ 200,00');
+  await expect(cartoes.nth(1).getByTestId('diferenca-meta')).toHaveCount(0);
+  await expect(cartoes.nth(0)).toContainText('Aportes previstos neste período');
+  await expect(cartoes.nth(1)).not.toContainText('Aportes previstos neste período');
+});
+
+
+test('mudança no prazo de conclusão importa mesmo com valor final igual', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const base = route.request().postDataJSON().nomeCenario === 'Sem mudanças';
+    await route.fulfill({ json: {
+      meses: 6, situacaoAtual: capacidade,
+      evolucaoMensal: Array.from({ length: 6 }, (_, i) => ({
+        indiceMes: i + 1, mesReferencia: '2027-0' + (i + 1),
+        rendaMensal: 3000, gastosMensais: 1200, margemMensal: 1000,
+      })),
+      projecoesMetas: [{
+        id: 1, nome: 'Curso', valorAtual: 0, valorAlvo: 5000,
+        valorProjetado: 5000, progressoProjetadoPercentual: 100,
+        concluidaNoPeriodo: true,
+        mesConclusaoReferencia: base ? '2027-04' : '2027-02'
+      }]
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const cartao = page.getByTestId('resumo-meta');
+  await expect(cartao).toContainText('R$ 5.000,00');
+  await expect(cartao.getByTestId('diferenca-meta')).toHaveCount(0);
+  await expect(cartao.getByTestId('diferenca-prazo-meta')).toContainText('antecipada de abr/27 para fev/27');
 });
