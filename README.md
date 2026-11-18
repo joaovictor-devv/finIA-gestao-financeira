@@ -282,7 +282,7 @@ A resposta contém, entre outros dados:
 - evolução individual de cada meta em cada mês simulado, no campo `evolucaoMensal[].metasProjetadas`;
 - mês previsto de conclusão, quando ocorrer dentro da simulação.
 
-**Compatibilidade:** a API ainda retorna campos antigos de saldo projetado, mas eles **não são indicadores de patrimônio** e não aparecem como resultado principal na interface. A tela utiliza folga mensal, reserva planejada e evolução das metas, para não confundir dinheiro livre com dinheiro já guardado.
+**Coerência:** a classificação geral da simulação considera os riscos de todo o período; um último mês positivo não esconde meses com déficit. Metas e reserva são contribuições previstas e não depósitos confirmados. **Compatibilidade:** a API ainda retorna campos antigos de saldo projetado, mas eles **não são indicadores de patrimônio** e não aparecem como resultado principal na interface. A tela utiliza folga mensal, reserva planejada e evolução das metas, para não confundir dinheiro livre com dinheiro já guardado.
 
 ## Inteligência Artificial
 
@@ -300,9 +300,15 @@ Esse endpoint não faz chamada externa, não consome créditos e nunca retorna a
 
 ```json
 {
-  "pergunta": "Por que minha capacidade de gasto está baixa?"
+  "pergunta": "E se eu guardar R$ 100 a mais?",
+  "historico": [
+    { "tipo": "usuario", "texto": "Como está meu orçamento?" },
+    { "tipo": "finia", "texto": "A renda cobre os compromissos cadastrados." }
+  ]
 }
 ```
+
+O campo `historico` é opcional, limitado a seis mensagens recentes de até 2.000 caracteres, com tipos `usuario` e `finia`. Os valores atuais do backend prevalecem; as mensagens não são persistidas no banco. Limpar o histórico no navegador faz a próxima pergunta começar sem contexto anterior.
 
 ### Análise geral
 
