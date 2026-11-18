@@ -305,3 +305,92 @@ test('sem reserva definida, recomenda planejamento sem dizer que a folga foi gua
   await expect(page.getByText('Os valores mensais não comprometidos foram somados', { exact: false })).toBeVisible();
 });
 
+
+test('período aceita digitar 24 meses sem reduzir a 1 e rejeita valores fora do limite', async ({ page }) => {
+  const enviados = [];
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const payload = route.request().postDataJSON();
+    enviados.push(payload);
+    await route.fulfill({ json: {
+      meses: payload.meses, situacaoAtual: capacidade,
+      totalReservaPlanejada: payload.meses * 300, totalAportadoMetas: 0,
+      evolucaoMensal: Array.from({ length: payload.meses }, (_, i) => ({
+        indiceMes: i + 1, mesReferencia: '2027-' + String(i % 12 + 1).padStart(2, '0'),
+        rendaMensal: 3000, gastosMensais: 1200, margemMensal: 1500,
+        reservaPlanejada: 300, aporteMetasBase: 0, aporteExtraMetas: 0
+      })),
+      projecoesMetas: []
+    } });
+  });
+  await page.goto('/simulacoes');
+  const campo = page.getByLabel('Período da simulação (meses)');
+  await campo.fill('');
+  await expect(campo).toHaveValue('');
+  await expect(page.getByRole('button', { name: '3. Ver o que aconteceria' })).toBeDisabled();
+  await campo.fill('61');
+  await expect(page.getByRole('button', { name: '3. Ver o que aconteceria' })).toBeDisabled();
+  await campo.fill('24');
+  await expect(campo).toHaveValue('24');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByText('24 meses analisados com as condições informadas.')).toBeVisible();
+  expect(enviados).toHaveLength(2);
+  expect(enviados[0].meses).toBe(24);
+  expect(enviados[1].meses).toBe(24);
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await expect(campo).toHaveValue('3');
+  await expect(page.getByText('24 meses analisados com as condições informadas.')).toHaveCount(0);
+});
+
+test('orçamento aceita moeda brasileira, mantém edição e envia valores numéricos', async ({ page }) => {
+  let payload;
+  await page.route('http://localhost:8080/orcamento', async route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    payload = route.request().postDataJSON();
+    await route.fulfill({ json: { ...capacidade, rendaMensal: payload.rendaMensal, gastosMensais: payload.gastosMensais, reservaPlanejada: payload.valorPlanejadoGuardar } });
+  });
+  await page.goto('/planejamento');
+  const renda = page.getByLabel('Renda mensal', { exact: true });
+  await renda.fill('2.500,50');
+  await page.getByLabel('Despesas mensais', { exact: true }).fill('1.200,25');
+  await page.getByLabel('Valor mensal para a reserva').fill('300,10');
+  await expect(renda).toHaveValue('2.500,50');
+  await page.getByRole('button', { name: 'Salvar orçamento' }).click();
+  await expect(page.getByRole('status')).toContainText('Orçamento salvo');
+  expect(payload).toEqual({ rendaMensal: 2500.5, gastosMensais: 1200.25, valorPlanejadoGuardar: 300.1 });
+});
+
+test('orçamento não permite persistir valor inválido e permite continuar editando', async ({ page }) => {
+  await page.goto('/planejamento');
+  const reserva = page.getByLabel('Valor mensal para a reserva');
+  await reserva.fill('inválido');
+  await expect(page.getByRole('button', { name: 'Salvar orçamento' })).toBeDisabled();
+  await reserva.fill('0');
+  await expect(page.getByRole('button', { name: 'Salvar orçamento' })).toBeEnabled();
+});
+
+test('evolução de metas utiliza valores mensais fornecidos pelo backend', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const payload = route.request().postDataJSON();
+    const isBase = payload.nomeCenario === 'Sem mudanças';
+    await route.fulfill({ json: {
+      meses: 3, situacaoAtual: capacidade, totalReservaPlanejada: 900,
+      totalAportadoMetas: 600,
+      evolucaoMensal: [500, 800, 1100].map((n, i) => ({
+        indiceMes: i + 1, mesReferencia: '2027-0' + (i + 1),
+        rendaMensal: 3000, gastosMensais: 1200, reservaPlanejada: 300,
+        aporteMetasBase: 200, aporteExtraMetas: 0, margemMensal: 1300,
+        metasProjetadas: [{ id: 1, nome: 'Notebook', valorAlvo: 3000, valorProjetado: isBase ? n : n + 100 }]
+      })),
+      projecoesMetas: [{ id: 1, nome: 'Notebook', valorAtual: 300, valorAlvo: 3000,
+        valorProjetado: isBase ? 1100 : 1200, progressoProjetadoPercentual: 40,
+        concluidaNoPeriodo: false, impacto: 'Progresso projetado' }]
+    } });
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  await expect(page.getByRole('img', { name: 'Gráfico de evolução das metas' })).toBeVisible();
+  await page.getByLabel('Mês do progresso da meta').selectOption('2');
+  await expect(page.getByText('R$ 900,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('comparacao-meta')).toContainText('R$ 100,00');
+});
