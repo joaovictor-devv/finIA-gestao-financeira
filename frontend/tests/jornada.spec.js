@@ -302,7 +302,7 @@ test('sem reserva definida, recomenda planejamento sem dizer que a folga foi gua
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
   await expect(page.getByText('Neste cenário não há valor destinado à reserva', { exact: false })).toBeVisible();
-  await expect(page.getByText('A folga acumulada é a soma das margens mensais', { exact: false })).toBeVisible();
+  await expect(page.getByText('A soma dos valores mensais disponíveis serve apenas à comparação', { exact: false })).toBeVisible();
 });
 
 
