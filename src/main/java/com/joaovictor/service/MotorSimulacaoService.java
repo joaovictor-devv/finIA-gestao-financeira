@@ -41,7 +41,7 @@ public class MotorSimulacaoService {
         int meses = request.getMeses() != null ? request.getMeses() : 6;
         BigDecimal rendaMensalAtual = escolher(request.getRendaMensal(), situacaoAtual.getRendaMensal());
         BigDecimal gastosMensaisAtuais = escolher(request.getGastosMensais(), situacaoAtual.getGastosMensais());
-        BigDecimal reservaMensal = valor(situacaoAtual.getReservaPlanejada());
+        BigDecimal reservaMensal = escolher(request.getReservaMensal(), situacaoAtual.getReservaPlanejada());
         BigDecimal aporteExtraGlobalMensal = valor(request.getAporteExtraMetasMensal());
 
         List<EstadoMeta> estadosMetas = prepararMetas(metas);
@@ -444,6 +444,7 @@ public class MotorSimulacaoService {
 
         validarNaoNegativoOpcional(request.getRendaMensal(), "A renda mensal simulada não pode ser negativa.");
         validarNaoNegativoOpcional(request.getGastosMensais(), "Os gastos mensais simulados não podem ser negativos.");
+        validarNaoNegativoOpcional(request.getReservaMensal(), "O valor mensal para guardar não pode ser negativo.");
         validarNaoNegativoOpcional(request.getAporteExtraMetasMensal(), "O aporte extra para metas não pode ser negativo.");
 
         if (request.getEventos().size() > MAX_EVENTOS) {
