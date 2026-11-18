@@ -5,6 +5,7 @@ import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import api from "../services/api";
 import { formatarMoeda } from "../utils/finance";
+import { carregarHistoricoChat, observarHistoricoChat, salvarHistoricoChat } from "../utils/historicoChat";
 
 const perguntasProntas = [
   { icon: "shopping_bag", texto: "Quanto posso gastar sem prejudicar minhas metas?" },
@@ -18,7 +19,8 @@ function Insights() {
   const [statusIA, setStatusIA] = useState(null);
   const [capacidade, setCapacidade] = useState(null);
   const [pergunta, setPergunta] = useState("");
-  const [conversa, setConversa] = useState([]);
+  const [conversa, setConversa] = useState(carregarHistoricoChat);
+  const mensagensAtuais = useRef(conversa);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const conversaRef = useRef(null);
@@ -35,6 +37,23 @@ function Insights() {
     return () => { ativo = false; };
   }, []);
 
+  useEffect(() => observarHistoricoChat((mensagens) => {
+    mensagensAtuais.current = mensagens;
+    setConversa(mensagens);
+  }), []);
+
+  function atualizarConversa(mensagens) {
+    const atualizadas = salvarHistoricoChat(mensagens);
+    mensagensAtuais.current = atualizadas;
+    setConversa(atualizadas);
+  }
+
+  function limparConversa() {
+    atualizarConversa([]);
+    setErro("");
+    setPergunta("");
+  }
+
   useEffect(() => {
     const painel = conversaRef.current;
     if (painel) painel.scrollTop = painel.scrollHeight;
@@ -45,16 +64,21 @@ function Insights() {
     const texto = pergunta.trim();
     if (!texto || enviando || !statusIA?.configurada) return;
     setErro("");
-    setConversa((atual) => [...atual, { tipo: "usuario", texto }]);
+    const anteriores = mensagensAtuais.current;
+    atualizarConversa([...anteriores, { tipo: "usuario", texto }]);
     setPergunta("");
     setEnviando(true);
     try {
       const response = await api.post("/ia/perguntar", { pergunta: texto });
-      setConversa((atual) => [...atual, { tipo: "finia", texto: response.data.resposta }]);
+      atualizarConversa([...mensagensAtuais.current, { tipo: "finia", texto: response.data.resposta }]);
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível falar com a FinIA agora. Tente novamente.");
       setPergunta(texto);
-      setConversa((atual) => atual.slice(0, -1));
+      // Uma pergunta sem resposta não deve parecer concluída ao reabrir a tela.
+      const ultimo = mensagensAtuais.current.at(-1);
+      if (ultimo?.tipo === "usuario" && ultimo.texto === texto) {
+        atualizarConversa(mensagensAtuais.current.slice(0, -1));
+      }
     } finally {
       setEnviando(false);
     }
@@ -68,7 +92,7 @@ function Insights() {
   return (
     <main className="finia-page">
       <PageHeader pergunta="Sua assistente" titulo="Pergunte à FinIA"
-        descricao="Converse sobre seu dinheiro. Encontre clareza para decidir." />
+        descricao="Tire dúvidas sobre seu planejamento financeiro e consulte suas respostas durante esta sessão." />
       {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
       <div className="finia-chat-layout">
@@ -76,11 +100,19 @@ function Insights() {
           <div className="finia-chat-header">
             <div className="flex items-center gap-3">
               <span className="finia-icon-tile"><Icon name="auto_awesome" /></span>
-              <div><p className="text-sm font-extrabold">FinIA</p><p className="mt-0.5 text-xs text-slate-500">Seu dinheiro, em palavras simples</p></div>
+              <div><p className="text-sm font-extrabold">FinIA</p><p className="mt-0.5 text-xs text-slate-500">Assistente de planejamento financeiro</p></div>
             </div>
-            <span className={"rounded-full px-3 py-1.5 text-[11px] font-bold " + (statusIA?.configurada ? "bg-cyan-50 text-cyan-800" : "bg-slate-100 text-slate-600")}>
-              {falhaStatus ? "Conexão indisponível" : !statusIA ? "Verificando..." : statusIA.configurada ? "IA configurada" : "IA não configurada"}
-            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {conversa.length > 0 && (
+                <button type="button" disabled={enviando} onClick={limparConversa}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:text-red-700 disabled:opacity-50">
+                  Limpar conversa
+                </button>
+              )}
+              <span className={"rounded-full px-3 py-1.5 text-[11px] font-bold " + (statusIA?.configurada ? "bg-cyan-50 text-cyan-800" : "bg-slate-100 text-slate-600")}>
+                {falhaStatus ? "Conexão indisponível" : !statusIA ? "Verificando..." : statusIA.configurada ? "IA configurada" : "IA não configurada"}
+              </span>
+            </div>
           </div>
 
           <div ref={conversaRef} role="log" aria-label="Mensagens da conversa" aria-live="polite" aria-relevant="additions text" className="finia-chat-log">
@@ -115,6 +147,10 @@ function Insights() {
                 maxLength={2000} className="finia-input" disabled={!statusIA?.configurada || enviando} />
               <button type="submit" disabled={!statusIA?.configurada || enviando || !pergunta.trim()} className="finia-button-primary" aria-label="Enviar pergunta"><Icon name="arrow_upward" /></button>
             </div>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              O histórico fica somente nesta aba do navegador, inclusive ao navegar entre páginas ou atualizar a tela.
+              Você pode apagá-lo a qualquer momento; ele não é salvo na conta do FinIA.
+            </p>
           </form>
         </section>
 
