@@ -9,9 +9,9 @@ const TOPO = 18;
 const BASE = 210;
 
 const indicadores = [
-  { id: "margem", titulo: "Folga mensal", explicacao: "O que sobra no mês depois de despesas, reserva planejada e aportes às metas." },
-  { id: "reserva", titulo: "Reserva acumulada", explicacao: "Soma dos valores planejados para guardar somente durante o período simulado." },
-  { id: "metas", titulo: "Aportes acumulados às metas", explicacao: "Total destinado às metas durante o período, sem incluir o que já estava guardado antes." },
+  { id: "margem", titulo: "Disponível por mês", explicacao: "Valor mensal restante após despesas, reserva planejada e aportes às metas. Não é o saldo de uma conta." },
+  { id: "reserva", titulo: "Reserva planejada", explicacao: "Total previsto para separar mês a mês, sem rendimentos. Não inclui dinheiro que você já tinha." },
+  { id: "metas", titulo: "Aportes para metas", explicacao: "Total previsto de contribuições às metas no período. Para ver o progresso de cada meta, utilize o gráfico específico abaixo." },
 ];
 
 function numero(valor) {
@@ -73,7 +73,7 @@ export default function GraficoImpactoMensal({ dados = [], referencia = null, te
 
   return (
     <figure className="finia-chart">
-      <figcaption className="text-sm font-bold text-slate-700">Como a decisão altera seu planejamento</figcaption>
+      <figcaption className="text-base font-extrabold text-slate-800">Impacto da decisão ao longo dos meses</figcaption>
       <p className="mt-1 text-xs leading-5 text-slate-500">{atual.explicacao}</p>
 
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Informação exibida no gráfico">
@@ -146,15 +146,38 @@ export default function GraficoImpactoMensal({ dados = [], referencia = null, te
         <Medida titulo="Na simulação" valor={formatarMoeda(valorCenario)} />
         {temReferencia && <>
           <Medida titulo="Sem mudanças" valor={formatarMoeda(valorBase)} />
-          <Medida titulo="Diferença" valor={formatoDiferenca(impacto)} teste="impacto-cenario" destaque={impacto < 0} />
+          <Medida titulo="Mudança em relação ao orçamento atual" valor={formatoDiferenca(impacto)} teste="impacto-cenario" destaque={impacto < 0} />
         </>}
       </div>
-      {indicador === "margem" && <p className="mt-3 text-xs leading-5 text-slate-500">
-        Essa folga não é dinheiro já guardado. Um valor negativo indica que os compromissos do mês excedem a renda daquele mês.
-      </p>}
-      {indicador !== "margem" && <p className="mt-3 text-xs leading-5 text-slate-500">
-        Acumulado destinado durante a simulação, sem considerar valores anteriores. É planejamento, não comprovação de depósito.
-      </p>}
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700" aria-live="polite">
+        <p className="font-extrabold">Interpretação de {nomeMes}</p>
+        {indicador === "margem" ? (
+          <p className="mt-1">
+            {valorCenario < 0
+              ? `As despesas e os valores planejados ultrapassariam a renda em ${formatarMoeda(Math.abs(valorCenario))} neste mês. Será necessário rever os compromissos ou a renda.`
+              : valorCenario === 0
+                ? "Toda a renda estaria comprometida neste mês. Não haveria margem para imprevistos."
+                : `Após os compromissos, restariam ${formatarMoeda(valorCenario)} para gastos não planejados neste mês.`}
+          </p>
+        ) : (
+          <p className="mt-1">
+            Até este mês, o total de {indicador === "reserva" ? "reserva planejada" : "aportes planejados às metas"} seria de {formatarMoeda(valorCenario)}.
+            Esse valor depende de cumprir o planejamento; não representa depósito realizado.
+          </p>
+        )}
+        {temReferencia && impacto !== 0 && (
+          <p className="mt-2">
+            Diferença em relação ao planejamento atual: {formatoDiferenca(impacto)}.
+            {indicador === "margem" && impacto < 0 && " Uma redução do valor livre pode ocorrer porque mais dinheiro foi destinado à reserva ou às metas."}
+          </p>
+        )}
+        {mes.eventosAplicados?.length > 0 && (
+          <p className="mt-2 text-xs text-slate-600">Alterações consideradas neste mês: {mes.eventosAplicados.join("; ")}.</p>
+        )}
+      </div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        O gráfico simula o planejamento informado; não acompanha contas bancárias e não calcula juros, rendimentos de investimentos ou inflação.
+      </p>
       {!temReferencia && <p className="mt-3 text-xs font-semibold text-amber-800">Não foi possível calcular o cenário sem mudanças. Os valores simulados continuam disponíveis.</p>}
     </figure>
   );
