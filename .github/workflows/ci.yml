@@ -5,6 +5,7 @@ on:
     branches:
       - dev/finia-desenvolvimento
       - main
+      - fix/simulacoes-grafico-comparativo
   pull_request:
     branches:
       - main
