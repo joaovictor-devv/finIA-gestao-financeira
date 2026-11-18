@@ -193,7 +193,7 @@ test('a simulação mostra risco por margem negativa, sem exibir saldo bancário
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('img', { name: 'Gráfico de disponível por mês' })).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByText('O orçamento ficaria negativo em 3 de 3 meses.')).toBeVisible();
   await expect(page.getByText('Reserva planejada no período').first()).toBeVisible();
   await expect(page.getByText('Mensagem antiga sobre saldo não deve aparecer.')).toHaveCount(0);
@@ -238,12 +238,12 @@ test('compara a folga mensal com a referência e destaca os meses afetados', asy
   await page.getByRole('spinbutton', { name: 'Valor da despesa extraordinária' }).fill('500');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
-  await expect(page.getByRole('img', { name: 'Gráfico de disponível por mês' })).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByText('O orçamento ficaria negativo em 1 de 3 meses.')).toBeVisible();
-  await page.getByLabel('Mês para detalhar').selectOption('1');
-  await expect(page.getByTestId('impacto-cenario')).toContainText('R$ 0,00');
-  await page.getByLabel('Mês para detalhar').selectOption('2');
-  await expect(page.getByTestId('impacto-cenario')).toContainText('-R$ 500,00');
+  const linhas = page.getByRole('table').getByRole('row');
+  await expect(linhas).toHaveCount(4);
+  await expect(linhas.nth(1)).toContainText('R$ 300,00');
+  await expect(linhas.nth(2)).toContainText('-R$ 200,00');
 
   expect(chamadas).toBe(2);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -282,9 +282,8 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
   expect(payloadSimulado.reservaMensal).toBe(500);
   await expect(page.getByText('Você não possui metas cadastradas.', { exact: false })).toBeVisible();
   await expect(page.getByText('R$ 1.500,00', { exact: true }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Reserva planejada' }).click();
-  await expect(page.getByTestId('impacto-cenario')).toContainText('+R$ 1.500,00');
-  await expect(page.getByRole('button', { name: 'Aportes para metas' })).toHaveCount(0);
+  await expect(page.getByText('Diferença: +R$ 1.500,00')).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByText('Saldo não é o foco.')).toHaveCount(0);
 });
 
@@ -368,7 +367,7 @@ test('orçamento não permite persistir valor inválido e permite continuar edit
   await expect(page.getByRole('button', { name: 'Salvar orçamento' })).toBeEnabled();
 });
 
-test('evolução de metas utiliza valores mensais fornecidos pelo backend', async ({ page }) => {
+test('metas e planejamento continuam explicativos sem gráficos', async ({ page }) => {
   await page.route('http://localhost:8080/simulacoes', async route => {
     const payload = route.request().postDataJSON();
     const isBase = payload.nomeCenario === 'Sem mudanças';
@@ -389,8 +388,56 @@ test('evolução de metas utiliza valores mensais fornecidos pelo backend', asyn
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('img', { name: 'Gráfico de evolução das metas' })).toBeVisible();
-  await page.getByLabel('Mês do progresso da meta').selectOption('2');
-  await expect(page.getByText('R$ 900,00', { exact: true }).first()).toBeVisible();
-  await expect(page.getByTestId('comparacao-meta')).toContainText('R$ 100,00');
+  await expect(page.getByRole('heading', { name: 'Projeção de cada meta' })).toBeVisible();
+  await expect(page.getByText('Progresso previsto: 40%')).toBeVisible();
+  await expect(page.getByText('R$ 1.200,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByRole('img', { name: /Gráfico de/ })).toHaveCount(0);
+});
+
+
+test('histórico do chatbot permanece ao navegar e atualizar, mas pode ser apagado', async ({ page }) => {
+  await page.route('**/ia/status', route => route.fulfill({ json: { configurada: true } }));
+  await page.route('**/ia/perguntar', route => route.fulfill({ json: {
+    resposta: 'Sua reserva deve considerar renda, despesas e metas.'
+  } }));
+  await page.goto('/insights');
+  await page.getByLabel('Sua pergunta para a FinIA').fill('Como planejar minha reserva?');
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+
+  const log = page.getByRole('log', { name: 'Mensagens da conversa' });
+  await expect(log).toContainText('Como planejar minha reserva?');
+  await expect(log).toContainText('Sua reserva deve considerar renda, despesas e metas.');
+
+  await page.getByRole('link', { name: 'Abrir meu orçamento' }).click();
+  await expect(page).toHaveURL(/\/planejamento$/);
+  await page.goBack();
+  await expect(log).toContainText('Como planejar minha reserva?');
+  await expect(log).toContainText('Sua reserva deve considerar renda, despesas e metas.');
+
+  await page.reload();
+  await expect(log).toContainText('Como planejar minha reserva?');
+  await expect(log).toContainText('Sua reserva deve considerar renda, despesas e metas.');
+
+  await page.getByRole('button', { name: 'Limpar conversa' }).click();
+  await expect(log).not.toContainText('Como planejar minha reserva?');
+  await page.reload();
+  await expect(log).not.toContainText('Sua reserva deve considerar renda, despesas e metas.');
+});
+
+test('histórico do chatbot não é compartilhado automaticamente com outra aba', async ({ page }) => {
+  await page.route('**/ia/status', route => route.fulfill({ json: { configurada: true } }));
+  await page.route('**/ia/perguntar', route => route.fulfill({ json: { resposta: 'Conversa temporária.' } }));
+  await page.goto('/insights');
+  await page.getByLabel('Sua pergunta para a FinIA').fill('Pergunta da primeira aba.');
+  await page.getByRole('button', { name: 'Enviar pergunta' }).click();
+  await expect(page.getByRole('log')).toContainText('Conversa temporária.');
+
+  const segundaAba = await page.context().newPage();
+  try {
+    await segundaAba.goto('/insights');
+    await expect(segundaAba.getByRole('log')).not.toContainText('Pergunta da primeira aba.');
+  } finally {
+    await segundaAba.close();
+  }
 });
