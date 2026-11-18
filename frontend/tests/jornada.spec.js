@@ -547,7 +547,7 @@ test('simulações de renda apresentam resultado da mudança sem tabela repetida
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
   await expect(page.getByText('Variação mensal')).toBeVisible();
-  await expect(page.getByText('R$ 500,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('variacao-renda')).toContainText('R$ 500,00');
   await expect(page.getByRole('table')).toHaveCount(0);
 });
 
