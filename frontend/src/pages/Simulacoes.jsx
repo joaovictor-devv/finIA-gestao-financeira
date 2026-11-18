@@ -6,6 +6,7 @@ import CurrencyInput from "../components/CurrencyInput";
 import ResultadoPorDecisao from "../components/ResultadoPorDecisao";
 import MudancasRelevantes from "../components/MudancasRelevantes";
 import ResumoMetasSimuladas from "../components/ResumoMetasSimuladas";
+import EvolucaoMetasRenda from "../components/EvolucaoMetasRenda";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
@@ -535,7 +536,7 @@ function Simulacoes() {
           </button>
         </fieldset></form>
 
-        <section className="finia-card p-6 sm:p-8">
+        <section data-testid="analise-cenario" className="finia-card min-w-0 p-6 sm:p-8">
           <h2 className="text-xl font-extrabold text-[#0A192F]">Análise do cenário</h2>
           {!resultado ? (
             <div className="finia-empty mt-6 flex min-h-80 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6">
@@ -562,6 +563,15 @@ function Simulacoes() {
           )}
         </section>
       </section>
+
+      {resultado && (cenario === "aumento" || cenario === "reducao") && (
+        <EvolucaoMetasRenda
+          resultado={resultado}
+          comparacao={comparacao}
+          cenario={cenario}
+          ajusteAportes={Boolean(ultimoPayload?.ajustarAportesAoOrcamento)}
+        />
+      )}
 
       {resultado && (
         <>
