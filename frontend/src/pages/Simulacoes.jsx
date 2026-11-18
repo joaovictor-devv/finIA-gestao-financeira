@@ -555,7 +555,6 @@ function Simulacoes() {
                 valorInformado={ultimoPayload?.eventos?.[0]?.valor}
                 mesEvento={ultimoPayload?.eventos?.[0]?.mes || 1}
                 metaId={ultimoPayload?.metaPrioritariaId}
-                ajusteAportes={Boolean(ultimoPayload?.ajustarAportesAoOrcamento)}
                 metaOriginal={metas.find((meta) => String(meta.id) === String(ultimoPayload?.metaPrioritariaId))}
                 aporteExtra={ultimoPayload?.aporteExtraMetasMensal}
               />
