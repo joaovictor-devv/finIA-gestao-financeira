@@ -40,6 +40,37 @@ class MotorSimulacaoServiceTest {
     }
 
     @Test
+    void deveSimularReservaMensalSemMetasSemAlterarOOrcamentoReal() {
+        SimulacaoFinanceiraRequest request = request(3);
+        request.setReservaMensal(dinheiro("600"));
+
+        CapacidadeFinanceira base = capacidade("2500", "1300", "300", "0", "1200");
+        ResultadoSimulacaoFinanceira resultado = service.simular(request, base, List.of());
+
+        assertThat(resultado.getTotalReservaPlanejada()).isEqualByComparingTo("1800");
+        assertThat(resultado.getTotalAportadoMetas()).isZero();
+        assertThat(resultado.getProjecoesMetas()).isEmpty();
+        assertThat(resultado.getEvolucaoMensal()).allSatisfy(mes -> {
+            assertThat(mes.getReservaPlanejada()).isEqualByComparingTo("600");
+            assertThat(mes.getMargemMensal()).isEqualByComparingTo("600");
+        });
+        assertThat(base.getReservaPlanejada()).isEqualByComparingTo("300");
+    }
+
+    @Test
+    void reservaMaiorQueRendaDisponivelDeveGerarMargemNegativaSemCriarMetas() {
+        SimulacaoFinanceiraRequest request = request(2);
+        request.setReservaMensal(dinheiro("1500"));
+
+        ResultadoSimulacaoFinanceira resultado = service.simular(
+                request, capacidade("2500", "1300", "0", "0", "1200"), List.of());
+
+        assertThat(resultado.getEvolucaoMensal().get(0).getMargemMensal()).isEqualByComparingTo("-300");
+        assertThat(resultado.getEvolucaoMensal().get(1).getMargemMensal()).isEqualByComparingTo("-300");
+        assertThat(resultado.getTotalReservaPlanejada()).isEqualByComparingTo("3000");
+    }
+
+    @Test
     void deveSuportarHorizonteMaximoDeSessentaMeses() {
         SimulacaoFinanceiraRequest request = request(60);
 

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Icon from "../components/Icon";
 import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
-import StatusBadge from "../components/StatusBadge";
+import GraficoImpactoMensal from "../components/GraficoImpactoMensal";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
 
@@ -13,6 +14,7 @@ const cenarios = [
   { id: "imprevisto", icon: "warning", titulo: "Gasto inesperado", descricao: "Veja o impacto de um imprevisto." },
   { id: "aumento", icon: "trending_up", titulo: "Minha renda aumentar", descricao: "Teste uma nova renda mensal." },
   { id: "reducao", icon: "trending_down", titulo: "Minha renda diminuir", descricao: "Entenda como uma queda afetaria você." },
+  { id: "guardar", icon: "savings", titulo: "Guardar dinheiro", descricao: "Simule uma quantia mensal para sua reserva, mesmo sem metas." },
   { id: "aporte", icon: "flag", titulo: "Guardar mais para uma meta", descricao: "Acelere uma meta e veja o efeito." },
   { id: "personalizado", icon: "tune", titulo: "Cenário personalizado", descricao: "Teste renda e gastos diferentes." },
 ];
@@ -28,8 +30,10 @@ function Simulacoes() {
   const [novaRenda, setNovaRenda] = useState("");
   const [rendaPersonalizada, setRendaPersonalizada] = useState("");
   const [gastosPersonalizados, setGastosPersonalizados] = useState("");
+  const [reservaPersonalizada, setReservaPersonalizada] = useState("");
   const [metaId, setMetaId] = useState("");
   const [resultado, setResultado] = useState(null);
+  const [comparacao, setComparacao] = useState(null);
   const [ultimoPayload, setUltimoPayload] = useState(null);
   const [explicacaoIA, setExplicacaoIA] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -49,6 +53,7 @@ function Simulacoes() {
         setNovaRenda(String(capacidadeResponse.data.rendaMensal ?? ""));
         setRendaPersonalizada(String(capacidadeResponse.data.rendaMensal ?? ""));
         setGastosPersonalizados(String(capacidadeResponse.data.gastosMensais ?? ""));
+        setReservaPersonalizada(String(capacidadeResponse.data.reservaPlanejada ?? ""));
         if (metasResponse.data?.length) {
           setMetaId(String(metasResponse.data[0].id));
         }
@@ -66,6 +71,7 @@ function Simulacoes() {
 
   function limparResultado() {
     setResultado(null);
+    setComparacao(null);
     setUltimoPayload(null);
     setExplicacaoIA("");
     setErro("");
@@ -75,6 +81,7 @@ function Simulacoes() {
     setEventos([]);
     setCenario(novoCenario);
     setResultado(null);
+    setComparacao(null);
     setUltimoPayload(null);
     setExplicacaoIA("");
     setErro("");
@@ -85,6 +92,7 @@ function Simulacoes() {
       setNovaRenda(String(capacidade.rendaMensal ?? ""));
       setRendaPersonalizada(String(capacidade.rendaMensal ?? ""));
       setGastosPersonalizados(String(capacidade.gastosMensais ?? ""));
+      setReservaPersonalizada(String(capacidade.reservaPlanejada ?? ""));
     }
   }
 
@@ -111,6 +119,10 @@ function Simulacoes() {
       });
     }
 
+    if (cenario === "guardar") {
+      payload.reservaMensal = numero(valor);
+    }
+
     if (cenario === "aporte") {
       payload.aporteExtraMetasMensal = numero(valor);
       if (metaId) payload.metaPrioritariaId = Number(metaId);
@@ -119,6 +131,7 @@ function Simulacoes() {
     if (cenario === "personalizado") {
       payload.rendaMensal = numero(rendaPersonalizada);
       payload.gastosMensais = numero(gastosPersonalizados);
+      payload.reservaMensal = numero(reservaPersonalizada);
       payload.eventos = eventos.map(({ mes, tipo, valor, metaId }) => ({ mes: Number(mes), tipo, valor: Number(valor), ...(metaId ? { metaId: Number(metaId) } : {}) }));
     }
 
@@ -126,7 +139,7 @@ function Simulacoes() {
   }
 
   function validarCenario() {
-    if (["compra", "imprevisto", "aporte"].includes(cenario) && numero(valor) <= 0) {
+    if (["compra", "imprevisto", "aporte", "guardar"].includes(cenario) && numero(valor) <= 0) {
       return "Informe um valor maior que zero para essa simulação.";
     }
 
@@ -167,8 +180,21 @@ function Simulacoes() {
     const payload = montarPayload();
     setSimulando(true);
     try {
-      const response = await api.post("/simulacoes", payload);
-      setResultado(response.data);
+      // O mesmo motor financeiro calcula os dois caminhos, com saldo e orçamento
+      // de partida idênticos. A referência não salva nem altera dados reais.
+      const [cenarioCalculado, referenciaCalculada] = await Promise.allSettled([
+        api.post("/simulacoes", payload),
+        api.post("/simulacoes", {
+          nomeCenario: "Sem mudanças",
+          meses: payload.meses,
+          eventos: [],
+        }),
+      ]);
+      if (cenarioCalculado.status === "rejected") throw cenarioCalculado.reason;
+      setResultado(cenarioCalculado.value.data);
+      setComparacao(referenciaCalculada.status === "fulfilled"
+        ? referenciaCalculada.value.data
+        : null);
       setUltimoPayload(payload);
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível fazer essa simulação.");
@@ -212,16 +238,16 @@ function Simulacoes() {
         descricao="Experimente uma decisão. Veja o impacto antes de dar o próximo passo."
       />
 
-      <p className="mb-6 flex items-start gap-2 text-xs leading-6 text-slate-600"><Icon name="science" className="text-cyan-800" /><span>Você está simulando. Seu saldo, orçamento e metas permanecem como estão.</span></p>
+      <p className="mb-6 flex items-start gap-2 text-xs leading-6 text-slate-600"><Icon name="science" className="text-cyan-800" /><span>Simulações não movimentam dinheiro nem alteram seu perfil, reserva planejada ou metas reais.</span></p>
 
       {erro && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{erro}</div>}
 
       {capacidade && (
         <section className="finia-metric-strip" aria-label="Ponto de partida">
-          <PontoPartida titulo="Saldo hoje" valor={formatarMoeda(capacidade.saldoAtual)} />
           <PontoPartida titulo="Renda por mês" valor={formatarMoeda(capacidade.rendaMensal)} />
           <PontoPartida titulo="Gastos por mês" valor={formatarMoeda(capacidade.gastosMensais)} />
-          <PontoPartida titulo="Sobra depois de tudo" valor={formatarMoeda(capacidade.margemAposMetas)} destaque />
+          <PontoPartida titulo="Para guardar por mês" valor={formatarMoeda(capacidade.reservaPlanejada)} />
+          <PontoPartida titulo="Metas por mês" valor={formatarMoeda(capacidade.comprometimentoMensalMetas)} />
         </section>
       )}
 
@@ -285,6 +311,17 @@ function Simulacoes() {
               />
             )}
 
+            {cenario === "guardar" && (
+              <CurrencyInput
+                label="Quanto pretende guardar por mês neste cenário?"
+                ajuda={`Atualmente, seu planejamento prevê ${formatarMoeda(capacidade?.reservaPlanejada)} por mês. Aqui você testa um novo total, sem alterar seu orçamento real.`}
+                value={valor}
+                onChange={(event) => setValor(event.target.value)}
+                placeholder="200,00"
+                required
+              />
+            )}
+
             {cenario === "aporte" && (
               <>
                 <CurrencyInput
@@ -318,6 +355,11 @@ function Simulacoes() {
                   label="Gastos mensais do cenário"
                   value={gastosPersonalizados}
                   onChange={(event) => setGastosPersonalizados(event.target.value)}
+                />
+                <CurrencyInput
+                  label="Valor para guardar por mês neste cenário"
+                  value={reservaPersonalizada}
+                  onChange={(event) => setReservaPersonalizada(event.target.value)}
                 />
               </>
             )}
@@ -374,7 +416,7 @@ function Simulacoes() {
             <div className="finia-empty mt-6 flex min-h-80 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6">
               <span className="material-symbols-outlined !text-[38px] text-slate-400">query_stats</span>
               <p className="mt-4 font-extrabold text-slate-700">Toda decisão começa com uma possibilidade.</p>
-              <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">Escolha um cenário e veja a projeção do seu saldo e das suas metas.</p>
+              <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">Escolha um cenário para avaliar suas despesas, folga mensal, reserva planejada e metas.</p>
             </div>
           ) : (
             <ResultadoSimulacao resultado={resultado} />
@@ -385,37 +427,53 @@ function Simulacoes() {
       {resultado && (
         <>
           <section className="finia-card mt-6 p-6 sm:p-8">
-            <h2 className="text-xl font-extrabold text-[#0A192F]">Hoje x cenário simulado</h2>
-            <p className="mt-1 text-sm text-slate-500">Compare rapidamente o ponto de partida com o resultado da decisão.</p>
-            <div className="mt-5 grid gap-4 lg:grid-cols-3">
-              <Comparacao label="Saldo" atual={resultado.saldoInicial} depois={resultado.saldoFinalProjetado} />
-              <Comparacao label="Renda mensal" atual={resultado.situacaoAtual?.rendaMensal} depois={resultado.evolucaoMensal?.at(-1)?.rendaMensal} />
-              <Comparacao label="Gastos mensais" atual={resultado.situacaoAtual?.gastosMensais} depois={resultado.evolucaoMensal?.at(-1)?.gastosMensais} inverter />
-            </div>
+            <h2 className="text-xl font-extrabold text-[#0A192F]">O que muda em relação a manter tudo como está?</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">Comparamos dois orçamentos no mesmo período, ambos calculados pelo motor financeiro. A diferença não é uma movimentação real.</p>
+            {comparacao ? (
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                <Comparacao label="Folga no último mês" atual={comparacao.evolucaoMensal?.at(-1)?.margemMensal} depois={resultado.evolucaoMensal?.at(-1)?.margemMensal} />
+                <Comparacao label="Total destinado à reserva" atual={comparacao.totalReservaPlanejada} depois={resultado.totalReservaPlanejada} />
+                <Comparacao label="Total destinado às metas" atual={comparacao.totalAportadoMetas} depois={resultado.totalAportadoMetas} />
+              </div>
+            ) : <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">O cenário sem mudanças está indisponível. Os resultados da sua simulação continuam abaixo.</p>}
+            <p className="mt-4 text-xs leading-5 text-slate-500">Uma menor folga pode significar que você decidiu guardar mais. Compare também reserva, metas e meses com déficit antes de avaliar a decisão.</p>
           </section>
 
           <section className="finia-card mt-6 p-6 sm:p-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#0A192F]">Evolução mês a mês</h2>
-                <p className="mt-1 text-sm text-slate-500">Saldo disponível projetado em cada mês.</p>
-              </div>
-              <span className="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-800">PROJEÇÃO</span>
-            </div>
-            <MiniGrafico dados={resultado.evolucaoMensal || []} />
-            <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
-              {(resultado.evolucaoMensal || []).map((mes) => (
-                <article key={mes.indiceMes} className="min-w-44 rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{formatarMesReferencia(mes.mesReferencia)}</p>
-                  <p className="finia-number mt-2 text-lg font-extrabold text-[#0A192F]">{formatarMoeda(mes.saldoDisponivelProjetado)}</p>
-                  <p className={`finia-number mt-1 text-xs font-bold ${Number(mes.margemMensal) < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                    {Number(mes.margemMensal) >= 0 ? "+" : ""}{formatarMoeda(mes.margemMensal)} no mês
-                  </p>
-                  {mes.eventosAplicados?.length > 0 && (
-                    <p className="mt-2 text-xs leading-5 text-slate-500">{mes.eventosAplicados.join(" · ")}</p>
-                  )}
-                </article>
-              ))}
+            <h2 className="text-xl font-extrabold text-[#0A192F]">Evolução do orçamento</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">Explore a folga para imprevistos, a reserva planejada e os aportes às metas. Sem usar um saldo bancário fictício.</p>
+            <GraficoImpactoMensal
+              key={JSON.stringify(ultimoPayload)}
+              dados={resultado.evolucaoMensal || []}
+              referencia={comparacao?.evolucaoMensal || null}
+              temMetas={(resultado.projecoesMetas || []).length > 0}
+            />
+          </section>
+
+          <section className="finia-card mt-6 p-6 sm:p-8">
+            <h2 className="text-xl font-extrabold text-[#0A192F]">O que acontece em cada mês?</h2>
+            <p className="mt-1 text-sm text-slate-500">Os valores mostram de onde vem a folga mensal. Não significam depósitos ou pagamentos já realizados.</p>
+            <div className="mt-5 flex gap-3 overflow-x-auto pb-3">
+              {(resultado.evolucaoMensal || []).map((mes) => {
+                const aporteMetas = numero(mes.aporteMetasBase) + numero(mes.aporteExtraMetas);
+                const margem = numero(mes.margemMensal);
+                return (
+                  <article key={mes.indiceMes} className="min-w-60 flex-1 rounded-xl border border-slate-200 bg-white p-4">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{formatarMesReferencia(mes.mesReferencia)}</h3>
+                    <p className={"finia-number mt-2 text-lg font-extrabold " + (margem < 0 ? "text-red-700" : "text-cyan-800")}>
+                      {formatarMoeda(margem)}
+                    </p>
+                    <p className="text-xs font-semibold text-slate-500">{margem < 0 ? "Falta no orçamento" : "Folga não comprometida"}</p>
+                    <dl className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-xs">
+                      <LinhaMes titulo="Renda total" valor={numero(mes.rendaMensal) + numero(mes.rendaExtraordinaria)} />
+                      <LinhaMes titulo="Gastos totais" valor={numero(mes.gastosMensais) + numero(mes.gastoExtraordinario)} />
+                      <LinhaMes titulo="Para reserva" valor={mes.reservaPlanejada} />
+                      <LinhaMes titulo="Para metas" valor={aporteMetas} />
+                    </dl>
+                    {mes.eventosAplicados?.length > 0 && <p className="mt-3 text-xs leading-5 text-slate-600">{mes.eventosAplicados.join(" · ")}</p>}
+                  </article>
+                );
+              })}
             </div>
           </section>
 
@@ -437,6 +495,11 @@ function Simulacoes() {
                     <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
                       <div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, Number(meta.progressoProjetadoPercentual || 0))}%` }} />
                     </div>
+                    {comparacao?.projecoesMetas?.find((item) => item.id === meta.id) && (
+                      <p className="mt-3 text-xs font-bold text-slate-600">
+                        Sem mudanças: {formatarMoeda(comparacao.projecoesMetas.find((item) => item.id === meta.id).valorProjetado)} ao final
+                      </p>
+                    )}
                     <p className="mt-3 text-sm leading-6 text-slate-600">
                       {meta.concluidaNoPeriodo && meta.mesConclusaoReferencia
                         ? `Nesse cenário, a meta seria concluída por volta de ${formatarMesReferencia(meta.mesConclusaoReferencia)}.`
@@ -470,99 +533,79 @@ function Simulacoes() {
   );
 }
 
+
 function ResultadoSimulacao({ resultado }) {
-  const melhorou = Number(resultado.variacaoSaldo) >= 0;
+  const evolucao = resultado.evolucaoMensal || [];
+  const semFolga = evolucao.filter((mes) => numero(mes.margemMensal) === 0);
+  const comDeficit = evolucao.filter((mes) => numero(mes.margemMensal) < 0);
+  const piorMes = evolucao.reduce((pior, mes) =>
+    pior === null || numero(mes.margemMensal) < numero(pior.margemMensal) ? mes : pior, null);
+  const totalMargens = evolucao.reduce((soma, mes) => soma + numero(mes.margemMensal), 0);
+  const reserva = numero(resultado.totalReservaPlanejada);
+  const aporte = numero(resultado.totalAportadoMetas);
+  const temMetas = (resultado.projecoesMetas || []).length > 0;
+  const alerta = comDeficit.length > 0;
+  const titulo = alerta
+    ? `O orçamento ficaria negativo em ${comDeficit.length} de ${evolucao.length} meses.`
+    : semFolga.length > 0
+      ? `O orçamento fecha, mas fica sem folga em ${semFolga.length} meses.`
+      : "O orçamento cobre seus compromissos em todos os meses.";
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <StatusBadge valor={resultado.classificacaoFinal} />
-        <span className="text-xs font-bold text-slate-500">{resultado.meses} meses simulados</span>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <MiniInfo label="Saldo hoje" valor={formatarMoeda(resultado.saldoInicial)} />
-        <MiniInfo label={`Saldo depois de ${resultado.meses} meses`} valor={formatarMoeda(resultado.saldoFinalProjetado)} destaque />
-      </div>
-
-      <div className={`mt-5 rounded-2xl border p-5 ${melhorou ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-        <p className={`font-extrabold ${melhorou ? "text-emerald-800" : "text-amber-800"}`}>
-          {melhorou
-            ? `Seu saldo aumentaria ${formatarMoeda(resultado.variacaoSaldo)} nesse período.`
-            : `Seu saldo diminuiria ${formatarMoeda(Math.abs(Number(resultado.variacaoSaldo)))} nesse período.`}
+      <div className={"rounded-2xl border p-5 " + (alerta ? "border-amber-200 bg-amber-50" : "border-cyan-100 bg-cyan-50")}>
+        <p className={"text-lg font-extrabold " + (alerta ? "text-amber-900" : "text-cyan-900")}>{titulo}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-700">
+          {alerta
+            ? `A menor folga seria ${formatarMoeda(piorMes?.margemMensal)} em ${formatarMesReferencia(piorMes?.mesReferencia)}. Isso exige revisar renda, gastos ou quanto pretende guardar e aportar às metas.`
+            : `A menor folga mensal seria ${formatarMoeda(piorMes?.margemMensal)}. Essa folga não é automaticamente guardada.`}
         </p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{resultado.mensagem}</p>
+        {evolucao.length > 0 && <p className="mt-2 text-xs font-semibold text-slate-600">{evolucao.length} meses analisados com as condições informadas.</p>}
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <MiniInfo label="Total guardado como reserva" valor={formatarMoeda(resultado.totalReservaPlanejada)} />
-        <MiniInfo label="Total destinado às metas" valor={formatarMoeda(resultado.totalAportadoMetas)} />
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <MiniInfo label="Folga acumulada não comprometida" valor={formatarMoeda(totalMargens)} destaque />
+        <MiniInfo label="Planejado para a reserva no período" valor={formatarMoeda(reserva)} />
+        <MiniInfo label="Aportes às metas no período" valor={formatarMoeda(aporte)} />
       </div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        A folga acumulada é a soma das margens mensais, não dinheiro já economizado.
+        Reserva e aportes são destinações planejadas durante estes meses, sem incluir valores que você já tinha guardado.
+      </p>
+
+      {!temMetas && <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+        Você não tem metas cadastradas. Tudo bem: a simulação considera apenas seu orçamento e quanto pretende guardar. Criar metas não é obrigatório.
+      </p>}
+      {reserva <= 0 && <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
+        Você não planejou separar dinheiro para uma reserva neste cenário. Mesmo com folga, o FinIA não assume que ela será guardada.
+        <Link to="/planejamento" className="ml-1 font-bold text-cyan-800 underline underline-offset-2">Ajustar orçamento</Link>
+      </div>}
+      {reserva > 0 && <p className="mt-4 text-sm leading-6 text-slate-700">
+        Se você conseguir seguir o plano, destinaria <strong>{formatarMoeda(reserva)}</strong> à reserva nesse período.
+        Esse número não representa um saldo confirmado em conta.
+      </p>}
     </div>
   );
 }
 
-function Comparacao({ label, atual, depois, inverter = false }) {
-  const atualNumero = Number(atual || 0);
-  const depoisNumero = Number(depois || 0);
-  const diferenca = depoisNumero - atualNumero;
-  const melhorou = inverter ? diferenca < 0 : diferenca > 0;
-  const piorou = inverter ? diferenca > 0 : diferenca < 0;
-
-  return (
-    <div className="rounded-2xl bg-slate-50 p-5">
-      <p className="text-sm font-bold text-slate-600">{label}</p>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs text-slate-400">Hoje</p>
-          <p className="finia-number mt-1 font-extrabold text-slate-700">{formatarMoeda(atualNumero)}</p>
-        </div>
-        <span className={`material-symbols-outlined ${melhorou ? "text-emerald-600" : piorou ? "text-red-500" : "text-slate-400"}`}>
-          {melhorou ? "trending_up" : piorou ? "trending_down" : "trending_flat"}
-        </span>
-        <div className="text-right">
-          <p className="text-xs text-slate-400">No final</p>
-          <p className="finia-number mt-1 font-extrabold text-[#0A192F]">{formatarMoeda(depoisNumero)}</p>
-        </div>
-      </div>
+function Comparacao({ label, atual, depois }) {
+  const antes = numero(atual);
+  const depoisNumero = numero(depois);
+  const diferenca = depoisNumero - antes;
+  return <div className="rounded-2xl bg-slate-50 p-5">
+    <p className="text-sm font-bold text-slate-700">{label}</p>
+    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+      <div><p className="text-slate-500">Sem mudanças</p><p className="finia-number mt-1 text-base font-bold text-slate-700">{formatarMoeda(antes)}</p></div>
+      <div><p className="text-slate-500">Na simulação</p><p className="finia-number mt-1 text-base font-bold text-cyan-900">{formatarMoeda(depoisNumero)}</p></div>
     </div>
-  );
+    <p className="finia-number mt-3 text-xs font-extrabold text-slate-700">Diferença: {diferenca > 0 ? "+" : ""}{formatarMoeda(diferenca)}</p>
+  </div>;
 }
 
-function MiniGrafico({ dados }) {
-  if (!dados.length) return null;
-  const valores = dados.map((item) => Number(item.saldoDisponivelProjetado) || 0);
-  const min = Math.min(0, ...valores);
-  const max = Math.max(0, ...valores);
-  const amplitude = Math.max(1, max - min);
-  const coordenadas = valores.map((valor, index) => ({
-    x: dados.length === 1 ? 300 : 12 + index / (dados.length - 1) * 576,
-    y: 176 - (valor - min) / amplitude * 156,
-  }));
-  const pontos = coordenadas.map(({ x, y }) => x + "," + y).join(" ");
-  const base = 176 - (0 - min) / amplitude * 156;
-  const area = coordenadas[0].x + "," + base + " " + pontos + " " + coordenadas.at(-1).x + "," + base;
-
-  return (
-    <figure className="finia-chart">
-      <figcaption className="finia-chart-scale">
-        <span>Saldo projetado · R$</span><span>Escala: {formatarMoeda(min)} a {formatarMoeda(max)}</span>
-      </figcaption>
-      <svg role="img" viewBox="0 0 600 200" className="h-44 w-full sm:h-52" preserveAspectRatio="none" aria-label="Gráfico de evolução do saldo">
-        <title>Projeção de saldo disponível</title>
-        <desc>{"De " + formatarMoeda(valores[0]) + " no primeiro mês a " + formatarMoeda(valores.at(-1)) + " no último. Os valores de cada mês aparecem abaixo."}</desc>
-        {[20, 98, 176].map((y) => <line key={y} x1="12" x2="588" y1={y} y2={y} stroke="#e5ecf2" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
-        <line x1="12" x2="588" y1={base} y2={base} stroke="#b4c8d7" vectorEffect="non-scaling-stroke" />
-        <polygon points={area} fill="#0E7490" fillOpacity="0.06" />
-        <polyline points={pontos} fill="none" stroke="#0E7490" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {coordenadas.map(({ x, y }, index) => (
-          <circle key={index} cx={x} cy={y} r="3.5" fill="#0E7490" stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke">
-            <title>{formatarMesReferencia(dados[index].mesReferencia) + ": " + formatarMoeda(valores[index])}</title>
-          </circle>
-        ))}
-      </svg>
-      <div className="finia-chart-dates"><span>{formatarMesReferencia(dados[0].mesReferencia)}</span>{dados.length > 1 && <span>{formatarMesReferencia(dados.at(-1).mesReferencia)}</span>}</div>
-    </figure>
-  );
+function LinhaMes({ titulo, valor }) {
+  return <div className="flex items-center justify-between gap-3">
+    <dt className="text-slate-500">{titulo}</dt>
+    <dd className="finia-number font-bold text-slate-800">{formatarMoeda(valor)}</dd>
+  </div>;
 }
 
 function PontoPartida({ titulo, valor, destaque = false }) {

@@ -46,24 +46,26 @@ public class FiniaIAService {
 
         StringBuilder contexto = new StringBuilder();
         contexto.append("Explique esta simulação financeira em até 100 palavras, com frases simples e curtas. ")
-                .append("Não refaça nem altere os cálculos. Destaque o resultado principal e apenas os valores que o explicam.\n\n")
+                .append("Não refaça nem altere os cálculos. Foque no orçamento mensal, no planejamento para guardar dinheiro e nas metas. ")
+                .append("Não use nem interprete o saldo projetado como patrimônio, economia ou dinheiro em banco. ")
+                .append("Folga livre não é automaticamente guardada. Reserva e aportes representam apenas valores planejados, não depósitos confirmados.\n\n")
                 .append("Cenário: ").append(resultado.getNomeCenario()).append('\n')
                 .append("Período: ").append(resultado.getMeses()).append(" meses\n")
-                .append("Saldo inicial: R$ ").append(resultado.getSaldoInicial()).append('\n')
-                .append("Saldo final projetado: R$ ").append(resultado.getSaldoFinalProjetado()).append('\n')
-                .append("Variação do saldo: R$ ").append(resultado.getVariacaoSaldo()).append('\n')
-                .append("Total planejado para reserva: R$ ").append(resultado.getTotalReservaPlanejada()).append('\n')
-                .append("Total aportado em metas: R$ ").append(resultado.getTotalAportadoMetas()).append('\n')
-                .append("Gastos extraordinários: R$ ").append(resultado.getTotalGastosExtraordinarios()).append('\n')
-                .append("Classificação final: ").append(resultado.getClassificacaoFinal()).append('\n')
-                .append("Conclusão determinística: ").append(resultado.getMensagem()).append("\n\n")
-                .append("EVOLUÇÃO MENSAL:\n");
+                .append("Total planejado para reserva no período: R$ ").append(resultado.getTotalReservaPlanejada()).append('\n')
+                .append("Aportes planejados às metas no período: R$ ").append(resultado.getTotalAportadoMetas()).append('\n')
+                .append("Gastos extraordinários no período: R$ ").append(resultado.getTotalGastosExtraordinarios()).append('\n')
+                .append("Conclusão determinística sobre o orçamento: ").append(resultado.getMensagem()).append("\n\n")
+                .append("EVOLUÇÃO MENSAL (PLANEJAMENTO, NÃO SALDO BANCÁRIO):\n");
 
         for (ProjecaoMensal mes : resultado.getEvolucaoMensal()) {
             contexto.append("- ").append(mes.getMesReferencia())
-                    .append(" | saldo: R$ ").append(mes.getSaldoDisponivelProjetado())
-                    .append(" | margem: R$ ").append(mes.getMargemMensal())
-                    .append(" | situação: ").append(mes.getClassificacao())
+                    .append(" | renda normal: R$ ").append(mes.getRendaMensal())
+                    .append(" | renda extraordinária: R$ ").append(mes.getRendaExtraordinaria())
+                    .append(" | gastos normais: R$ ").append(mes.getGastosMensais())
+                    .append(" | gasto extraordinário: R$ ").append(mes.getGastoExtraordinario())
+                    .append(" | reserva planejada: R$ ").append(mes.getReservaPlanejada())
+                    .append(" | aporte metas: R$ ").append(mes.getAporteMetasBase().add(mes.getAporteExtraMetas()))
+                    .append(" | folga mensal após compromissos: R$ ").append(mes.getMargemMensal())
                     .append('\n');
         }
 

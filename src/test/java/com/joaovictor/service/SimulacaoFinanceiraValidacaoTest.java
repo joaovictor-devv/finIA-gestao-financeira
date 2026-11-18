@@ -55,6 +55,16 @@ class SimulacaoFinanceiraValidacaoTest {
     }
 
     @Test
+    void deveRejeitarReservaMensalNegativaAntesDeAcessarOBanco() {
+        SimulacaoFinanceiraRequest request = request(3);
+        request.setReservaMensal(new BigDecimal("-100"));
+
+        assertThatThrownBy(() -> service.simular(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("guardar não pode ser negativo");
+    }
+
+    @Test
     void deveExigirValorPositivoParaGastoExtraordinario() {
         SimulacaoFinanceiraRequest request = request(6);
         request.setEventos(List.of(evento(1, "GASTO_EXTRAORDINARIO", "0", null)));
