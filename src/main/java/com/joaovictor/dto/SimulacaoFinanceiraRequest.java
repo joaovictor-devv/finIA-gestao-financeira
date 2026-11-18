@@ -10,6 +10,7 @@ public class SimulacaoFinanceiraRequest {
     private Integer meses;
     private BigDecimal rendaMensal;
     private BigDecimal gastosMensais;
+    private BigDecimal reservaMensal;
     private BigDecimal aporteExtraMetasMensal;
     private Long metaPrioritariaId;
     private List<EventoSimulacaoRequest> eventos = new ArrayList<>();
@@ -25,6 +26,9 @@ public class SimulacaoFinanceiraRequest {
 
     public BigDecimal getGastosMensais() { return gastosMensais; }
     public void setGastosMensais(BigDecimal gastosMensais) { this.gastosMensais = gastosMensais; }
+
+    public BigDecimal getReservaMensal() { return reservaMensal; }
+    public void setReservaMensal(BigDecimal reservaMensal) { this.reservaMensal = reservaMensal; }
 
     public BigDecimal getAporteExtraMetasMensal() { return aporteExtraMetasMensal; }
     public void setAporteExtraMetasMensal(BigDecimal aporteExtraMetasMensal) { this.aporteExtraMetasMensal = aporteExtraMetasMensal; }
