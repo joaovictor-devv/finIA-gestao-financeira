@@ -798,6 +798,11 @@ test('aporte adicional mostra o mínimo já previsto e não soma duas vezes', as
   await page.getByRole('spinbutton', { name: 'Quanto deseja adicionar por mês?' }).fill('100');
   await expect(page.getByText('Aporte total mensal para esta meta:', { exact: false })).toContainText('R$ 300,00');
   await expect(page.getByText('já está incluído no orçamento', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: '3 meses', exact: true }).click();
+  await expect(page.getByTestId('extra-necessario-periodo')).toContainText('R$ 466,67');
+  await page.getByRole('button', { name: 'Usar valor necessário para o período' }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Quanto deseja adicionar por mês?' })).toHaveValue('466.67');
+  await expect(page.getByText('Aporte total mensal para esta meta:', { exact: false })).toContainText('R$ 666,67');
 });
 
 test('redução de renda adapta aportes por escolha e mostra marcos das metas', async ({ page }) => {
