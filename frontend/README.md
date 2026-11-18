@@ -10,7 +10,7 @@ Esta pasta contém a interface **React 19 + Vite 8 + Tailwind CSS 4** do FinIA. 
 | `/planejamento` | Informar renda, gastos e valor planejado para guardar |
 | `/metas` | Criar, editar e acompanhar metas |
 | `/simulacoes` | Testar decisões, folga mensal, reserva e metas, inclusive sem metas cadastradas |
-| `/insights` | Conversar com a FinIA quando a integração estiver configurada |
+| `/insights` | Conversar com a FinIA, mantendo o histórico temporário da aba e permitindo apagá-lo |
 | `/perfil` | Nome e saldo informado pelo usuário |
 
 A simulação **não salva** os resultados no banco nem representa dinheiro depositado. Ela exibe o planejamento com o orçamento informado.
@@ -40,3 +40,10 @@ O Playwright usa respostas simuladas da API, em Chromium desktop e viewport móv
 ## Identidade visual
 
 Manrope, Material Symbols Outlined, tons de azul e ciano e formato monetário brasileiro (`R$`). Ícones são carregados pela fonte local, não por sprites de redes sociais ou arquivos de template.
+
+## Histórico temporário do chat
+
+A tela `/insights` mantém até 60 mensagens em `sessionStorage` **somente na aba atual** do navegador. A conversa continua visível ao sair da tela, voltar ou atualizar a página. O usuário pode selecionar **Limpar conversa** a qualquer momento. O histórico não é gravado no MySQL nem compartilhado automaticamente entre abas. Alguns navegadores restauram dados de sessão ao reabrir abas; utilize o botão para apagá-los imediatamente. Apenas a pergunta corrente é enviada a `POST /ia/perguntar` (o histórico exibido não é repassado à API).
+
+Em `/simulacoes`, as projeções aparecem em tabela e em resumos de metas, sem gráficos de linhas.
+
