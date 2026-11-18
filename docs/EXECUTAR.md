@@ -74,3 +74,10 @@ Os testes unitários e integrados da API usam H2 isolado em modo MySQL. O CI tam
 6. Em Simulações, escolha **Compra pontual**: teste uma compra que caiba no valor disponível do próximo mês e outra que exceda esse valor. O resultado deve informar quanto restaria ou faltaria **naquele mês**, sem repetir os compromissos inalterados. Depois teste **Alterar reserva mensal** sem metas e **Planejamento personalizado**: confira que meses idênticos não geram tabela e que apenas mudanças relevantes aparecem; volte ao perfil e confirme que os dados reais não mudaram. Com renda R$ 3.000, despesas R$ 1.000, reserva R$ 300 e aportes R$ 1.698,73/mês, a sobra de R$ 1,27 deve gerar um alerta de pouca margem, não seis linhas repetidas.
 7. Complete o progresso da meta: seu compromisso mensal deixa de pesar no orçamento.
 8. Sem chave da IA, mostre que todo o motor continua funcionando. Com chave, envie uma pergunta ao chatbot e depois outra de continuação: a FinIA usa até seis mensagens recentes como contexto, sem substituir dados calculados pelo backend. Use **Limpar conversa** para reiniciar o contexto.
+
+### Cenários de regressão financeira
+
+1. Em **Aporte adicional**, selecione uma meta de R$ 3.000 que já tenha R$ 1.000 e prazo de 10 meses. O aporte mensal já previsto deve ser **R$ 200**; adicionar R$ 100/mês significa R$ 300/mês para a meta, e não R$ 100 nem R$ 400. Ao completar o alvo, o excedente não deve ir para outra meta.
+2. Em **Redução de renda**, teste uma renda que cubra despesas e reserva, mas não todos os aportes das metas. Ative e desative **Adaptar os aportes**: o resultado e a evolução das metas devem mudar. O simulador não altera o cadastro.
+3. Em **Aumento de renda**, observe que a evolução das metas permanece igual até você optar por destinar parte do aumento a uma meta. Compare os valores e os prazos sem uma tabela mensal.
+
