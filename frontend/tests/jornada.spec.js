@@ -193,7 +193,7 @@ test('a simulação mostra risco por margem negativa, sem exibir saldo bancário
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3 meses', exact: true }).click();
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByRole('img', { name: 'Gráfico de folga mensal' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Gráfico de disponível por mês' })).toBeVisible();
   await expect(page.getByText('O orçamento ficaria negativo em 3 de 3 meses.')).toBeVisible();
   await expect(page.getByText('Reserva planejada no período').first()).toBeVisible();
   await expect(page.getByText('Mensagem antiga sobre saldo não deve aparecer.')).toHaveCount(0);
@@ -238,7 +238,7 @@ test('compara a folga mensal com a referência e destaca os meses afetados', asy
   await page.getByRole('spinbutton', { name: 'Valor da despesa extraordinária' }).fill('500');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
 
-  await expect(page.getByRole('img', { name: 'Gráfico de folga mensal' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Gráfico de disponível por mês' })).toBeVisible();
   await expect(page.getByText('O orçamento ficaria negativo em 1 de 3 meses.')).toBeVisible();
   await page.getByLabel('Mês para detalhar').selectOption('1');
   await expect(page.getByTestId('impacto-cenario')).toContainText('R$ 0,00');
@@ -282,9 +282,9 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
   expect(payloadSimulado.reservaMensal).toBe(500);
   await expect(page.getByText('Você não tem metas cadastradas.', { exact: false })).toBeVisible();
   await expect(page.getByText('R$ 1.500,00', { exact: true }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Reserva acumulada' }).click();
+  await page.getByRole('button', { name: 'Reserva planejada' }).click();
   await expect(page.getByTestId('impacto-cenario')).toContainText('+R$ 1.500,00');
-  await expect(page.getByRole('button', { name: 'Aportes acumulados às metas' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Aportes para metas' })).toHaveCount(0);
   await expect(page.getByText('Saldo não é o foco.')).toHaveCount(0);
 });
 
@@ -301,8 +301,8 @@ test('sem reserva definida, recomenda planejamento sem dizer que a folga foi gua
   } }));
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByText('Você não planejou separar dinheiro para uma reserva', { exact: false })).toBeVisible();
-  await expect(page.getByText('Os valores mensais não comprometidos foram somados', { exact: false })).toBeVisible();
+  await expect(page.getByText('Neste cenário não há valor destinado à reserva', { exact: false })).toBeVisible();
+  await expect(page.getByText('A folga acumulada é a soma das margens mensais', { exact: false })).toBeVisible();
 });
 
 
