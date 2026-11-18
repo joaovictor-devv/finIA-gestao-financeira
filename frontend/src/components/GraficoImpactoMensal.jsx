@@ -130,7 +130,7 @@ export default function GraficoImpactoMensal({ dados = [], referencia = null, te
 
       <div className="mt-4">
         <label className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-700">
-          Ver mês
+          Mês em análise
           <select aria-label="Mês para detalhar" value={indice + 1}
             onChange={(event) => setMesSelecionado(Number(event.target.value))}
             className="finia-input h-11 w-auto min-w-40 px-3">
