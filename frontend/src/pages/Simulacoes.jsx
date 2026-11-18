@@ -86,6 +86,13 @@ function Simulacoes() {
     ? Math.ceil((restanteMeta / Number(metaSelecionada.prazoMeses)) * 100 - 0.0000001) / 100
     : 0;
   const disponibilidadeParaExtra = numero(capacidade?.margemAposMetas);
+  // Valor extra estimado para alcançar o alvo dentro do horizonte da simulação,
+  // além do aporte-base já previsto no orçamento.
+  const aporteNecessarioNoHorizonte = periodoValido && meses > 0
+    ? Math.ceil(restanteMeta / meses * 100 - 0.0000001) / 100
+    : 0;
+  const extraParaConcluirNoHorizonte = Math.max(0,
+    Math.round((aporteNecessarioNoHorizonte - aporteBaseMeta) * 100) / 100);
 
   function limparResultado() {
     setResultado(null);
@@ -448,6 +455,24 @@ function Simulacoes() {
                     <p className="mt-2 text-xs text-slate-500">
                       Ao atingir o valor-alvo, os aportes são interrompidos. O excedente não será transferido automaticamente a outras metas.
                     </p>
+                  </div>
+                )}
+                {metaSelecionada && periodoValido && extraParaConcluirNoHorizonte > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
+                    <p>
+                      Para tentar concluir esta meta em <strong>{meses} {meses === 1 ? "mês" : "meses"}</strong>,
+                      seria necessário acrescentar aproximadamente
+                      {" "}<strong data-testid="extra-necessario-periodo">{formatarMoeda(extraParaConcluirNoHorizonte)} por mês</strong>
+                      {" "}aos {formatarMoeda(aporteBaseMeta)} já previstos.
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Esse cálculo é apenas o valor necessário para atingir o objetivo, sem juros. Ele não garante que o orçamento comporte esse aporte.
+                    </p>
+                    <button type="button"
+                      onClick={() => { setValor(extraParaConcluirNoHorizonte.toFixed(2)); limparResultado(); }}
+                      className="mt-3 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-900 hover:bg-cyan-100">
+                      Usar valor necessário para o período
+                    </button>
                   </div>
                 )}
               </>
