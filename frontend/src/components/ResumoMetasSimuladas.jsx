@@ -62,7 +62,7 @@ function CartaoMeta({ meta, referencia, meses }) {
         </p>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className={"mt-4 grid gap-3 " + (registrado > 0.005 ? "sm:grid-cols-2" : "")}>
         <div className="rounded-xl border border-slate-100 p-3">
           <p className="text-xs font-semibold text-slate-600">
             {restante < 0.005 ? "Meta alcançada no cenário" : "Ainda faltaria"}
@@ -71,12 +71,16 @@ function CartaoMeta({ meta, referencia, meses }) {
             {formatarMoeda(restante)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-100 p-3">
-          <p className="text-xs font-semibold text-slate-600">Aportes previstos neste período</p>
-          <p className="finia-number mt-1 text-lg font-bold text-slate-900">
-            {formatarMoeda(aportes)}
-          </p>
-        </div>
+        {registrado > 0.005 && (
+          <div className="rounded-xl border border-slate-100 p-3">
+            <p className="text-xs font-semibold text-slate-600">
+              Aportes previstos neste período (além do valor já registrado)
+            </p>
+            <p className="finia-number mt-1 text-lg font-bold text-slate-900">
+              {formatarMoeda(aportes)}
+            </p>
+          </div>
+        )}
       </div>
 
       <p className="mt-4 text-sm leading-6 text-slate-700">{conclusao}</p>
