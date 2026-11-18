@@ -107,7 +107,7 @@ function Planejamento() {
       {sucesso && <Feedback>{sucesso}</Feedback>}
 
       <section className="finia-form-layout">
-        <form onSubmit={salvar} className="finia-card p-6 sm:p-8"><fieldset disabled={salvando || !previa.valido}>
+        <form onSubmit={salvar} className="finia-card p-6 sm:p-8"><fieldset disabled={salvando}>
           <div className="finia-form-intro">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
               <span className="material-symbols-outlined">account_balance_wallet</span>
@@ -159,7 +159,7 @@ function Planejamento() {
 
           <button
             type="submit"
-            disabled={salvando}
+            disabled={salvando || !previa.valido}
             className="finia-button-primary mt-8 w-full px-5 py-3.5 sm:w-auto"
           >
             {salvando ? "Salvando..." : "Salvar orçamento"}
