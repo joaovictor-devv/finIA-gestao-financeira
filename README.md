@@ -433,3 +433,4 @@ O objetivo do produto pode ser resumido como:
 
 A documentação acima descreve o código das branches recentes; o histórico de versões e resultados anteriores permanece acessível pelos commits do Git. Não é necessário aplicar arquivos `.patch` ou importar um ZIP para atualizar a cópia clonada.
 
+**Projeção das metas na interface:** os resultados apresentam valor projetado ao término do período, percentual e valor ainda necessário, sem comparar "Hoje" e "Depois" quando isso repete informação. A diferença em relação ao planejamento atual só é mostrada quando existir. O valor realmente separado depende de atualização manual na página Metas; o simulador não efetiva aportes.
