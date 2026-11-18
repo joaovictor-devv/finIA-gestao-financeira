@@ -3,6 +3,8 @@ package com.joaovictor.service;
 import com.joaovictor.dto.SimulacaoFinanceiraRequest;
 import com.joaovictor.dto.StatusIAResponse;
 import com.joaovictor.model.AnaliseIARequest;
+import com.joaovictor.model.MensagemHistoricoIA;
+import java.util.List;
 import com.joaovictor.model.ProjecaoMensal;
 import com.joaovictor.model.ProjecaoMeta;
 import com.joaovictor.model.RespostaIA;
@@ -37,7 +39,22 @@ public class FiniaIAService {
         if (request.getPergunta().length() > 2000) {
             throw new IllegalArgumentException("A pergunta deve ter no máximo 2000 caracteres.");
         }
-        RespostaIA resposta = openAIService.perguntar(request.getPergunta());
+        List<MensagemHistoricoIA> historico = request.getHistorico() == null ? List.of() : request.getHistorico();
+        if (historico.size() > 6) {
+            throw new IllegalArgumentException("Envie no máximo 6 mensagens de contexto da conversa.");
+        }
+        for (MensagemHistoricoIA mensagem : historico) {
+            if (mensagem == null
+                    || (!"usuario".equals(mensagem.getTipo()) && !"finia".equals(mensagem.getTipo()))
+                    || mensagem.getTexto() == null || mensagem.getTexto().isBlank()
+                    || mensagem.getTexto().length() > 2000) {
+                throw new IllegalArgumentException("O histórico contém uma mensagem inválida.");
+            }
+        }
+
+        RespostaIA resposta = historico.isEmpty()
+                ? openAIService.perguntar(request.getPergunta())
+                : openAIService.perguntar(request.getPergunta(), historico);
         return resposta.getResposta();
     }
 
