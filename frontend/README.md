@@ -1,87 +1,42 @@
-# Frontend FinIA
+# Frontend do FinIA
 
-Frontend final do TCC FinIA, construído com React, Vite, Tailwind CSS e Axios.
+Esta pasta contém a interface **React 19 + Vite 8 + Tailwind CSS 4** do FinIA. A descrição das regras financeiras, dos endpoints e da estrutura do TCC fica no [README principal](../README.md), para evitar documentos divergentes.
 
-## Objetivo de experiência
+## Telas atuais
 
-Cada tela responde uma pergunta simples:
+| Rota | Finalidade |
+| --- | --- |
+| `/` | Dashboard e situação financeira atual |
+| `/planejamento` | Informar renda, gastos e valor planejado para guardar |
+| `/metas` | Criar, editar e acompanhar metas |
+| `/simulacoes` | Testar decisões, folga mensal, reserva e metas, inclusive sem metas cadastradas |
+| `/insights` | Conversar com a FinIA quando a integração estiver configurada |
+| `/perfil` | Nome e saldo informado pelo usuário |
 
-```text
-Dashboard       -> Como estou hoje?
-Meu Orçamento   -> Quanto entra e quanto sai?
-Metas           -> Consigo alcançar isso?
-Simulações      -> O que acontece se eu fizer isso?
-FinIA           -> O que esses números significam?
-Perfil          -> Quanto tenho agora?
-```
+A simulação **não salva** os resultados no banco nem representa dinheiro depositado. Ela exibe o planejamento com o orçamento informado.
 
-A interface evita termos bancários e financeiros desnecessariamente técnicos. O princípio do produto é:
+## Desenvolvimento local
 
-> Você informa o básico. O FinIA calcula, simula e explica.
-
-## Rotas
-
-```text
-/               Dashboard
-/planejamento   Meu Orçamento
-/metas          Metas
-/simulacoes     Simulações
-/insights       FinIA
-/perfil         Perfil
-```
-
-## Integração
-
-As páginas consomem a API Spring Boot configurada em `src/services/api.js`.
-
-Por padrão:
-
-```text
-http://localhost:8080
-```
-
-Para usar outro endereço, configure:
-
-```text
-VITE_API_URL
-```
-
-## Executar
+É necessário Node.js 22.12+ e backend Spring Boot executando na porta 8080 (ou endereço configurado via `VITE_API_URL`).
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-## Validar
+Acesse `http://localhost:5173`. Por padrão, `src/services/api.js` usa `http://localhost:8080`.
+
+## Testes
 
 ```bash
 npm run lint
 npm run build
-```
-
-## Identidade visual
-
-O frontend segue o conceito **Deep Ocean Tide**:
-
-- fonte Manrope;
-- Deep Navy;
-- Deep Teal;
-- Seafoam/Cyan;
-- fundo claro;
-- cards brancos;
-- estados positivos, de atenção e de problema bem diferenciados;
-- layout responsivo para desktop e celular.
-
-Todos os valores monetários exibidos ao usuário usam Real brasileiro (`R$`).
-
-## Jornadas automatizadas
-
-```bash
 npx playwright install chromium --only-shell
 npm test
 ```
 
-Os testes cobrem edição de metas, rejeição de meta inviável, progresso vazio, eventos personalizados, descarte de resultado obsoleto, falhas da IA e navegação nas seis telas em desktop/mobile. As respostas da API são controladas nos testes de navegador. As fontes são empacotadas localmente, sem depender do Google Fonts em tempo de execução.
+O Playwright usa respostas simuladas da API, em Chromium desktop e viewport móvel. Para validar também o backend e o MySQL, siga [Executar o FinIA](../docs/EXECUTAR.md).
 
-Para executar frontend, API e MySQL juntos, consulte `../docs/EXECUTAR.md`.
+## Identidade visual
+
+Manrope, Material Symbols Outlined, tons de azul e ciano e formato monetário brasileiro (`R$`). Ícones são carregados pela fonte local, não por sprites de redes sociais ou arquivos de template.

@@ -47,6 +47,13 @@ Os servidores sao vinculados ao proprio computador. O ExecutionPolicy Bypass
 dos atalhos vale apenas para o processo iniciado, sem mudar a politica permanente.
 Politicas corporativas podem impedir scripts, e nao sao contornadas pelo iniciador.
 
-Validacao: sintaxe aprovada pelo parser PowerShell 7.4 e revisao do fluxo de
-configuracao. A execucao completa com
-Windows PowerShell 5.1, MySQL e navegador precisa ser confirmada no Windows.
+## Atualizar o projeto
+
+O launcher nao atualiza o Git. Antes de abrir a nova versao, feche a aplicacao
+e rode `git status` e `git pull --ff-only` na branch correta. Preserve suas
+mudancas locais; nao use `git restore` nem `git reset --hard` para forcar
+atualizacoes sem revisar o que sera descartado.
+
+Para conferir a compilacao e os testes, consulte [Executar o FinIA](EXECUTAR.md).
+Os testes do navegador dependem de uma instalacao local do Chromium pelo Playwright.
+

@@ -2,7 +2,7 @@
 
 ## Opção 1 — Docker Desktop
 
-É necessário ter Docker Desktop instalado e iniciado. Este ambiente não tinha Docker; a configuração abaixo foi revisada, mas ainda precisa ser executada em uma máquina com Docker.
+Requer Docker Desktop instalado e iniciado. Esta opção cria um banco MySQL isolado por volume e expõe somente o frontend localmente.
 
 1. Extraia o projeto e abra um terminal na pasta que contém `compose.yaml`.
 2. Copie `.env.example` para `.env` (no PowerShell: `Copy-Item .env.example .env`).
@@ -26,6 +26,12 @@ O primeiro comando mostra os logs; o segundo para os serviços preservando o ban
 Esta configuração cria um banco novo e não migra automaticamente um banco antigo. A migração legada continua em `database/migration_v3_final.sql`; faça backup antes de aplicá-la a dados existentes.
 
 O acesso é restrito ao próprio computador (`127.0.0.1:3000`), pois o escopo do TCC não possui login. MySQL e backend não publicam portas no host. Para hospedagem pública, será necessário definir proteção de acesso e HTTPS; CORS sozinho não protege os dados.
+
+## Opção 2 — Iniciador para Windows
+
+Com Java 21, Maven, Node.js e MySQL configurados, você pode abrir `Iniciar-FinIA.bat` na raiz do repositório. O launcher inicia frontend e backend e abre `http://localhost:5173` sem apagar dados.
+
+Instruções completas: [Iniciar no Windows](INICIAR-WINDOWS.md).
 
 ## Opção 2 — Ferramentas locais
 
@@ -56,7 +62,7 @@ npx playwright install chromium --only-shell
 npm test
 ```
 
-Os testes da API usam H2 isolado em modo MySQL. O CI mantém os testes de migração e smoke HTTP com MySQL real. Os testes de navegador usam respostas controladas da API e executam em Chromium com dois tamanhos de tela; o tamanho de iPhone não representa um teste no Safari real.
+Os testes unitários e integrados da API usam H2 isolado em modo MySQL. O CI também executa migração e smoke tests com MySQL real. Os testes de navegador usam respostas de API controladas e rodam em Chromium (desktop e viewport móvel); isso não substitui um teste em Safari/iPhone físico. O resultado dos testes deve ser confirmado para o commit específico na [aba Actions](https://github.com/joaovictor-devv/finIA-gestao-financeira/actions).
 
 ## Roteiro de apresentação
 
@@ -65,6 +71,6 @@ Os testes da API usam H2 isolado em modo MySQL. O CI mantém os testes de migra�
 3. Meta: Notebook de R$ 3.000, R$ 1.000 já guardados, prazo de 10 meses.
 4. Dashboard: o compromisso da meta é R$ 200/mês; a margem fica em R$ 1.300.
 5. Edite a meta, confira a prévia e salve. Teste também um valor inviável.
-6. Em Simulações, combine renda extraordinária no mês 2 e gasto no mês 4. Compare o resultado e volte ao perfil para confirmar que nada mudou.
+6. Em Simulações, experimente guardar R$ 400/mês sem metas, um gasto extraordinário no mês 2 e uma mudança de renda. Compare a folga, a reserva e os aportes; volte ao perfil para conferir que os dados reais não mudaram.
 7. Complete o progresso da meta: seu compromisso mensal deixa de pesar no orçamento.
 8. Sem chave da IA, mostre que todo o motor continua funcionando. Com chave, confirme a qualidade das explicações antes da apresentação.

@@ -3,13 +3,11 @@ name: FinIA CI
 on:
   push:
     branches:
-      - dev/finia-desenvolvimento
       - main
-      - fix/simulacoes-grafico-comparativo
+      - dev/finia-desenvolvimento
+      - "fix/**"
+      - "chore/**"
   pull_request:
-    branches:
-      - main
-      - dev/finia-desenvolvimento
 
 jobs:
   backend:

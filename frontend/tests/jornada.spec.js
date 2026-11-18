@@ -57,10 +57,21 @@ test('progresso vazio não vira zero', async ({ page }) => {
 
 test('limpa resultado ao mudar período e envia eventos personalizados', async ({ page }) => {
   let payload;
-  await page.route('**/simulacoes', async route => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
     if (route.request().method() !== 'POST') return route.fallback();
-    payload = route.request().postDataJSON();
-    await route.fulfill({ json: { meses: payload.meses, saldoInicial: 1500, saldoFinalProjetado: 4000, variacaoSaldo: 2500, classificacaoFinal: 'SAUDAVEL', evolucaoMensal: [], projecoesMetas: [] } });
+    const requestBody = route.request().postDataJSON();
+    if (requestBody.nomeCenario !== 'Sem mudanças') payload = requestBody;
+    await route.fulfill({ json: {
+      meses: requestBody.meses, classificacaoFinal: 'SAUDAVEL',
+      situacaoAtual: capacidade, totalReservaPlanejada: 300 * requestBody.meses,
+      totalAportadoMetas: 0, projecoesMetas: [],
+      evolucaoMensal: Array.from({ length: requestBody.meses }, (_, index) => ({
+        indiceMes: index + 1, mesReferencia: '2027-' + String(index % 12 + 1).padStart(2, '0'),
+        rendaMensal: 3000, gastosMensais: 1200, reservaPlanejada: 300,
+        aporteMetasBase: 0, aporteExtraMetas: 0, margemMensal: 1500,
+        eventosAplicados: [],
+      })),
+    } });
   });
   await page.goto('/simulacoes');
   await page.getByRole('button', { name: /Cenário personalizado/ }).click();
@@ -68,10 +79,10 @@ test('limpa resultado ao mudar período e envia eventos personalizados', async (
   await page.getByLabel('Valor do evento').fill('500');
   await page.getByLabel('Mês do evento').fill('2');
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
-  await expect(page.getByText('6 meses simulados')).toBeVisible();
+  await expect(page.getByText('6 meses analisados com as condições informadas.')).toBeVisible();
   expect(payload.eventos).toEqual([{ mes: 2, tipo: 'RENDA_EXTRAORDINARIA', valor: 500 }]);
   await page.getByRole('button', { name: '12m', exact: true }).click();
-  await expect(page.getByText('6 meses simulados')).toHaveCount(0);
+  await expect(page.getByText('6 meses analisados com as condições informadas.')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Explicar com a FinIA' })).toHaveCount(0);
 });
 
@@ -167,7 +178,7 @@ test('orçamento mostra a prévia sem gravar antes de salvar', async ({ page }) 
 });
 
 test('a simulação mostra risco por margem negativa, sem exibir saldo bancário projetado', async ({ page }) => {
-  await page.route('**/simulacoes', async route => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
     await route.fulfill({ json: {
       meses: 3, saldoInicial: 1500, saldoFinalProjetado: -500, variacaoSaldo: -2000,
       classificacaoFinal: 'DEFICIT', mensagem: 'Mensagem antiga sobre saldo não deve aparecer.',
@@ -202,7 +213,7 @@ test('dashboard apresenta déficit e valores grandes sem perder ações no celul
 
 test('compara a folga mensal com a referência e destaca os meses afetados', async ({ page }) => {
   let chamadas = 0;
-  await page.route('**/simulacoes', async route => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
     const payload = route.request().postDataJSON();
     chamadas++;
     const eReferencia = payload.nomeCenario === 'Sem mudanças';
@@ -244,7 +255,7 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
   await page.route('**/analise/capacidade-gastos', route => route.fulfill({ json: {
     ...capacidade, reservaPlanejada: 0, comprometimentoMensalMetas: 0, margemAposMetas: 1800,
   } }));
-  await page.route('**/simulacoes', async route => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
     const payload = route.request().postDataJSON();
     const referencia = payload.nomeCenario === 'Sem mudanças';
     if (!referencia) payloadSimulado = payload;
@@ -279,7 +290,7 @@ test('permite planejar reserva sem nenhuma meta, sem confundir folga com economi
 
 test('sem reserva definida, recomenda planejamento sem dizer que a folga foi guardada', async ({ page }) => {
   await page.route('**/metas', route => route.fulfill({ json: [] }));
-  await page.route('**/simulacoes', route => route.fulfill({ json: {
+  await page.route('http://localhost:8080/simulacoes', route => route.fulfill({ json: {
     meses: 1, saldoInicial: 0, saldoFinalProjetado: 1200,
     classificacaoFinal: 'SAUDAVEL', situacaoAtual: capacidade,
     totalReservaPlanejada: 0, totalAportadoMetas: 0,
