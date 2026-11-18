@@ -656,7 +656,7 @@ test('mudança em um único mês destaca apenas o acontecimento e não todos os 
   await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
   const marcos = page.getByTestId('mudancas-relevantes');
   await expect(marcos).toBeVisible();
-  await expect(marcos.getByRole('listitem')).toHaveCount(2);
+  await expect(marcos.locator('ol > li')).toHaveCount(2);
   await expect(marcos).toContainText('mar/27');
   await expect(marcos).toContainText('abr/27');
   await expect(marcos).not.toContainText('fev/27');
