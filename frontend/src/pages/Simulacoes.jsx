@@ -506,7 +506,13 @@ function Simulacoes() {
           {cenarioCompleto && resultado.projecoesMetas?.length > 0 && (
             <section className="finia-card mt-6 p-6 sm:p-8">
               <h2 className="text-xl font-extrabold text-[#0A192F]">Projeção de cada meta</h2>
-              <p className="mt-1 text-sm text-slate-500">Veja como cada objetivo ficaria nesse cenário.</p>
+              <p className="mt-1 text-sm text-slate-600">Os valores pressupõem que todos os aportes planejados sejam realizados.</p>
+              {resultado.evolucaoMensal?.some((mes) => numero(mes.margemMensal) < 0) && (
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                  Há meses com renda insuficiente para despesas, reserva e metas. O avanço projetado não é garantido:
+                  para manter esses aportes, será necessário ajustar o orçamento ou utilizar recursos já disponíveis.
+                </p>
+              )}
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {resultado.projecoesMetas.map((meta) => (
                   <article key={meta.id} className="rounded-2xl border border-slate-200 p-5">
