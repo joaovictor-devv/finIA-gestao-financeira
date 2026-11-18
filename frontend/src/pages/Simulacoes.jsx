@@ -4,8 +4,6 @@ import Icon from "../components/Icon";
 import EventosCenario from "../components/EventosCenario";
 import CurrencyInput from "../components/CurrencyInput";
 import PageHeader from "../components/PageHeader";
-import GraficoImpactoMensal from "../components/GraficoImpactoMensal";
-import GraficoEvolucaoMeta from "../components/GraficoEvolucaoMeta";
 import api from "../services/api";
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
 
@@ -439,52 +437,62 @@ function Simulacoes() {
           </section>
 
           <section className="finia-card mt-6 p-6 sm:p-8">
-            <h2 className="text-xl font-extrabold text-[#0A192F]">Evolução do planejamento mensal</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">Explore a folga para imprevistos, a reserva planejada e os aportes às metas. Sem usar um saldo bancário fictício.</p>
-            <GraficoImpactoMensal
-              key={JSON.stringify(ultimoPayload)}
-              dados={resultado.evolucaoMensal || []}
-              referencia={comparacao?.evolucaoMensal || null}
-              temMetas={(resultado.projecoesMetas || []).length > 0}
-            />
-          </section>
-
-          <section className="finia-card mt-6 p-6 sm:p-8">
-            <h2 className="text-xl font-extrabold text-[#0A192F]">O que acontece em cada mês?</h2>
-            <p className="mt-1 text-sm text-slate-500">Os valores mostram de onde vem a folga mensal. Não significam depósitos ou pagamentos já realizados.</p>
-            <div className="mt-5 flex gap-3 overflow-x-auto pb-3">
-              {(resultado.evolucaoMensal || []).map((mes) => {
-                const aporteMetas = numero(mes.aporteMetasBase) + numero(mes.aporteExtraMetas);
-                const margem = numero(mes.margemMensal);
-                return (
-                  <article key={mes.indiceMes} className="min-w-60 flex-1 rounded-xl border border-slate-200 bg-white p-4">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{formatarMesReferencia(mes.mesReferencia)}</h3>
-                    <p className={"finia-number mt-2 text-lg font-extrabold " + (margem < 0 ? "text-red-700" : "text-cyan-800")}>
-                      {formatarMoeda(margem)}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500">{margem < 0 ? "Falta no orçamento" : "Folga não comprometida"}</p>
-                    <dl className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-xs">
-                      <LinhaMes titulo="Renda total" valor={numero(mes.rendaMensal) + numero(mes.rendaExtraordinaria)} />
-                      <LinhaMes titulo="Gastos totais" valor={numero(mes.gastosMensais) + numero(mes.gastoExtraordinario)} />
-                      <LinhaMes titulo="Para reserva" valor={mes.reservaPlanejada} />
-                      <LinhaMes titulo="Para metas" valor={aporteMetas} />
-                    </dl>
-                    {mes.eventosAplicados?.length > 0 && <p className="mt-3 text-xs leading-5 text-slate-600">{mes.eventosAplicados.join(" · ")}</p>}
-                  </article>
-                );
-              })}
+            <h2 className="text-xl font-extrabold text-[#0A192F]">Detalhamento mensal da simulação</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Confira quanto seria recebido, gasto e destinado à reserva ou às metas em cada mês.
+              Valores negativos na última coluna indicam compromissos superiores à renda prevista.
+            </p>
+            <div className="mt-5 max-h-[440px] overflow-auto rounded-xl border border-slate-200" tabIndex={0}
+              aria-label="Tabela mensal da simulação, com rolagem quando necessário">
+              <table className="w-full min-w-[720px] border-collapse text-left text-xs sm:text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">Mês</th>
+                    <th scope="col" className="px-3 py-3 text-right">Receitas</th>
+                    <th scope="col" className="px-3 py-3 text-right">Despesas</th>
+                    <th scope="col" className="px-3 py-3 text-right">Reserva prevista</th>
+                    <th scope="col" className="px-3 py-3 text-right">Aportes às metas</th>
+                    <th scope="col" className="px-4 py-3 text-right">Disponível após compromissos</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(resultado.evolucaoMensal || []).map((mes) => {
+                    const renda = numero(mes.rendaMensal) + numero(mes.rendaExtraordinaria);
+                    const despesas = numero(mes.gastosMensais) + numero(mes.gastoExtraordinario);
+                    const aportes = numero(mes.aporteMetasBase) + numero(mes.aporteExtraMetas);
+                    const disponivel = numero(mes.margemMensal);
+                    return (
+                      <tr key={mes.indiceMes} className="bg-white even:bg-slate-50">
+                        <th scope="row" className="px-4 py-3 font-bold text-slate-800">
+                          {formatarMesReferencia(mes.mesReferencia)}
+                          {mes.eventosAplicados?.length > 0 && (
+                            <span className="mt-1 block max-w-52 text-[11px] font-normal leading-4 text-slate-600">
+                              {mes.eventosAplicados.join("; ")}
+                            </span>
+                          )}
+                        </th>
+                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(renda)}</td>
+                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(despesas)}</td>
+                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(mes.reservaPlanejada)}</td>
+                        <td className="finia-number whitespace-nowrap px-3 py-3 text-right">{formatarMoeda(aportes)}</td>
+                        <td className={"finia-number whitespace-nowrap px-4 py-3 text-right font-bold " + (disponivel < 0 ? "text-red-700" : "text-cyan-800")}>
+                          {formatarMoeda(disponivel)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Reservas e aportes representam valores planejados, não depósitos efetivados.
+              A projeção não inclui rendimento de investimentos, juros ou inflação.
+            </p>
           </section>
 
           {resultado.projecoesMetas?.length > 0 && (
             <section className="finia-card mt-6 p-6 sm:p-8">
-              <GraficoEvolucaoMeta
-                key={JSON.stringify(ultimoPayload) + "-meta"}
-                projecoesMetas={resultado.projecoesMetas}
-                evolucao={resultado.evolucaoMensal || []}
-                referencia={comparacao?.evolucaoMensal || null}
-              />
-              <h2 className="mt-8 text-xl font-extrabold text-[#0A192F]">Projeção de cada meta</h2>
+              <h2 className="text-xl font-extrabold text-[#0A192F]">Projeção de cada meta</h2>
               <p className="mt-1 text-sm text-slate-500">Veja como cada objetivo ficaria nesse cenário.</p>
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {resultado.projecoesMetas.map((meta) => (
@@ -497,9 +505,10 @@ function Simulacoes() {
                       <MiniInfo label="Hoje" valor={formatarMoeda(meta.valorAtual)} />
                       <MiniInfo label="Depois" valor={formatarMoeda(meta.valorProjetado)} destaque />
                     </div>
-                    <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, Number(meta.progressoProjetadoPercentual || 0))}%` }} />
-                    </div>
+                    <p className="mt-4 text-sm font-bold text-slate-700">
+                      Progresso previsto: {Number(meta.progressoProjetadoPercentual || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+                      {" "}do valor necessário de {formatarMoeda(meta.valorAlvo)}.
+                    </p>
                     {comparacao?.projecoesMetas?.find((item) => item.id === meta.id) && (
                       <p className="mt-3 text-xs font-bold text-slate-600">
                         Sem mudanças: {formatarMoeda(comparacao.projecoesMetas.find((item) => item.id === meta.id).valorProjetado)} ao final
@@ -603,13 +612,6 @@ function Comparacao({ label, atual, depois }) {
       <div><p className="text-slate-500">Na simulação</p><p className="finia-number mt-1 text-base font-bold text-cyan-900">{formatarMoeda(depoisNumero)}</p></div>
     </div>
     <p className="finia-number mt-3 text-xs font-extrabold text-slate-700">Diferença: {diferenca > 0 ? "+" : ""}{formatarMoeda(diferenca)}</p>
-  </div>;
-}
-
-function LinhaMes({ titulo, valor }) {
-  return <div className="flex items-center justify-between gap-3">
-    <dt className="text-slate-500">{titulo}</dt>
-    <dd className="finia-number font-bold text-slate-800">{formatarMoeda(valor)}</dd>
   </div>;
 }
 

@@ -165,9 +165,6 @@ fieldset:disabled { opacity: .75; }
 .finia-scenario:hover { border-color: #92c7d7; }
 .finia-scenario.is-active { border-color: var(--finia-cyan); background: #eaf7fb; box-shadow: inset 0 0 0 1px var(--finia-cyan); }
 .finia-scenario.is-active .finia-icon-tile { background: var(--finia-cyan); color: #fff; }
-.finia-chart { margin-top: 24px; padding: 20px 16px 12px; border: 1px solid var(--finia-line); border-radius: 18px; background: #fbfdff; }
-.finia-chart-scale { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: #526176; font-size: 11px; margin-bottom: 12px; }
-.finia-chart-dates { display: flex; justify-content: space-between; gap: 16px; font-size: 11px; color: #526176; margin-top: 8px; }
 
 /* Conversation keeps the composer within reach. */
 .finia-chat-layout { display: grid; align-items: start; gap: 22px; }
