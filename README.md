@@ -207,6 +207,28 @@ As simulações são temporárias e nunca alteram perfil, saldo, orçamento ou m
 
 O cenário pode partir do orçamento atual ou sobrescrever renda e gastos apenas para a projeção. Também aceita eventos em meses específicos.
 
+### Simular quanto guardar sem criar metas
+
+A simulação aceita `reservaMensal`, que substitui **somente no cenário** o valor mensal planejado para guardar. Não é necessário cadastrar metas. Exemplo:
+
+```json
+{
+  "nomeCenario": "Guardar 400 por mês",
+  "meses": 6,
+  "reservaMensal": 400,
+  "eventos": []
+}
+```
+
+O motor calcula folga mensal = renda do mês (incluindo extras) menos gastos (incluindo extras), reserva planejada e aportes a metas existentes. A interface apresenta:
+- meses em que a renda não cobre os compromissos;
+- folga mensal e seu comparativo com manter o orçamento atual;
+- total planejado para a reserva durante o período (não inclui dinheiro já guardado);
+- valores aportados às metas e progresso simulado de cada objetivo;
+- evolução mês a mês, com gráficos de folga, reserva e metas, sem confundir a projeção com saldo bancário.
+
+**Importante:** folga livre não significa economia realizada; reserva e aportes são intenções de destinação, não comprovantes de depósito. Se não houver metas cadastradas, os cálculos da reserva e do orçamento permanecem válidos. As simulações não alteram dados reais.
+
 Tipos de evento suportados:
 
 - `RENDA_EXTRAORDINARIA`: entrada única naquele mês;
