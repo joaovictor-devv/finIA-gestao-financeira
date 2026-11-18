@@ -36,6 +36,7 @@ export default function GraficoEvolucaoMeta({ projecoesMetas = [], evolucao = []
   const valorNoMes = valor(hist[mesIndex]?.valorProjetado);
   const valorBaseNoMes = possuiBase ? valor(baseHist[mesIndex]?.valorProjetado) : null;
   const progresso = alvo > 0 ? Math.min(100, valorNoMes / alvo * 100) : 0;
+  const mesesComDeficit = evolucao.filter((item) => valor(item.margemMensal) < 0).length;
 
   return (
     <figure className="finia-chart">
@@ -111,6 +112,12 @@ export default function GraficoEvolucaoMeta({ projecoesMetas = [], evolucao = []
       ) : (
         <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
           A evolução mensal desta meta não está disponível nesta resposta. Consulte o valor final previsto no quadro de metas abaixo.
+        </p>
+      )}
+      {mesesComDeficit > 0 && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          Atenção: há {mesesComDeficit} {mesesComDeficit === 1 ? "mês" : "meses"} em que a renda projetada não cobre todos os compromissos.
+          A evolução mostrada pressupõe que os aportes às metas sejam mantidos; para realizá-los, será necessário ajustar o planejamento.
         </p>
       )}
       <p className="mt-3 text-xs leading-5 text-slate-500">
