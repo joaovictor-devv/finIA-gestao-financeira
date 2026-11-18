@@ -762,3 +762,29 @@ test('comparação de meta só aparece quando cenário realmente altera a previs
   await expect(cartoes.nth(0)).toContainText('Aportes previstos neste período');
   await expect(cartoes.nth(1)).not.toContainText('Aportes previstos neste período');
 });
+
+
+test('mudança no prazo de conclusão importa mesmo com valor final igual', async ({ page }) => {
+  await page.route('http://localhost:8080/simulacoes', async route => {
+    const base = route.request().postDataJSON().nomeCenario === 'Sem mudanças';
+    await route.fulfill({ json: {
+      meses: 6, situacaoAtual: capacidade,
+      evolucaoMensal: Array.from({ length: 6 }, (_, i) => ({
+        indiceMes: i + 1, mesReferencia: '2027-0' + (i + 1),
+        rendaMensal: 3000, gastosMensais: 1200, margemMensal: 1000,
+      })),
+      projecoesMetas: [{
+        id: 1, nome: 'Curso', valorAtual: 0, valorAlvo: 5000,
+        valorProjetado: 5000, progressoProjetadoPercentual: 100,
+        concluidaNoPeriodo: true,
+        mesConclusaoReferencia: base ? '2027-04' : '2027-02'
+      }]
+    }});
+  });
+  await page.goto('/simulacoes');
+  await page.getByRole('button', { name: '3. Ver o que aconteceria' }).click();
+  const cartao = page.getByTestId('resumo-meta');
+  await expect(cartao).toContainText('R$ 5.000,00');
+  await expect(cartao.getByTestId('diferenca-meta')).toHaveCount(0);
+  await expect(cartao.getByTestId('diferenca-prazo-meta')).toContainText('antecipada de abr/27 para fev/27');
+});
