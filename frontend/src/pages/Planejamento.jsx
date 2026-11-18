@@ -51,7 +51,7 @@ function Planejamento() {
     const gastos = lerValorMonetario(form.gastosMensais);
     const guardar = lerValorMonetario(form.valorPlanejadoGuardar);
     const valido = [renda, gastos, guardar].every(Number.isFinite);
-    const metas = numero(resumo?.comprometimentoMensalMetas);
+    const metas = Number(resumo?.comprometimentoMensalMetas || 0);
     const antesMetas = valido ? renda - gastos - guardar : null;
     const depoisMetas = valido ? antesMetas - metas : null;
     return { renda, gastos, guardar, metas, antesMetas, depoisMetas, valido };
