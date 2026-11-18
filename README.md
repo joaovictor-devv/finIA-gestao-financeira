@@ -227,7 +227,7 @@ O motor calcula folga mensal = renda do mês (incluindo extras) menos gastos (in
 - valores aportados às metas e progresso simulado de cada objetivo;
 - evolução mês a mês, com gráficos de folga, reserva e metas, sem confundir a projeção com saldo bancário.
 
-**Importante:** folga livre não significa economia realizada; reserva e aportes são intenções de destinação, não comprovantes de depósito. Se não houver metas cadastradas, os cálculos da reserva e do orçamento permanecem válidos. As simulações não alteram dados reais.
+**Importante:** folga livre não significa economia realizada; reserva e aportes são intenções de destinação, não comprovantes de depósito. Não existem aplicações financeiras cadastradas nem estimativas automáticas de rendimentos, juros ou inflação. O gráfico de metas exibe os aportes previstos e alerta quando há meses com déficit. Se não houver metas cadastradas, os cálculos da reserva e do orçamento permanecem válidos. As simulações não alteram dados reais.
 
 Tipos de evento suportados:
 
@@ -278,6 +278,7 @@ A resposta contém, entre outros dados:
 - aportes **planejados** às metas;
 - eventos aplicados em cada mês;
 - progresso atual e projetado de cada meta;
+- evolução individual de cada meta em cada mês simulado, no campo `evolucaoMensal[].metasProjetadas`;
 - mês previsto de conclusão, quando ocorrer dentro da simulação.
 
 **Compatibilidade:** a API ainda retorna campos antigos de saldo projetado, mas eles **não são indicadores de patrimônio** e não aparecem como resultado principal na interface. A tela utiliza folga mensal, reserva planejada e evolução das metas, para não confundir dinheiro livre com dinheiro já guardado.
