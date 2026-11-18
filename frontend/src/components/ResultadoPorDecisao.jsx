@@ -36,6 +36,9 @@ function AvaliacaoDespesa({ cenario, resultado, comparacao, valorInformado, mesE
   const insuficiencia = Math.max(0, -depois);
   const jaDeficit = antes < -0.005;
   const cabeNoMes = antes >= -0.005 && depois >= -0.005;
+  const saldoInformado = resultado.situacaoAtual?.saldoAtual;
+  const saldoHojeMenorQueCompra = saldoInformado != null
+    && Number.isFinite(Number(saldoInformado)) && n(saldoInformado) < custo;
   const mesNome = formatarMesReferencia(mes.mesReferencia);
   const nome = cenario === "compra" ? "compra" : "despesa extraordinária";
   const titulo = jaDeficit
@@ -57,6 +60,12 @@ function AvaliacaoDespesa({ cenario, resultado, comparacao, valorInformado, mesE
         <Dado titulo={cenario === "compra" ? "Preço da compra" : "Despesa extraordinária"} valor={custo} />
         <Dado titulo="Disponível após o gasto" valor={depois} destaque teste="disponivel-depois" />
       </div>
+      {saldoHojeMenorQueCompra && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          O saldo informado atualmente é de {formatarMoeda(saldoInformado)}, abaixo do preço deste gasto.
+          Mesmo que o orçamento do mês comporte a despesa, isso não comprova que haverá dinheiro livre para pagá-la no momento da compra.
+        </p>
+      )}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
         <p className="font-bold">E a reserva e as metas?</p>
         <p className="mt-1">
@@ -67,7 +76,8 @@ function AvaliacaoDespesa({ cenario, resultado, comparacao, valorInformado, mesE
         </p>
         <p className="mt-2 text-xs text-slate-600">
           A despesa é contabilizada uma única vez. O orçamento mensal dos períodos seguintes não é automaticamente alterado.
-          A análise considera a renda do mês, não verifica o saldo disponível na conta bancária nem contempla parcelamento.
+          Esta análise é de uma despesa única à vista, sem parcelas. A disponibilidade mensal não garante o dinheiro necessário para pagar agora:
+          parte do saldo informado pode estar reservada para metas ou outros compromissos.
         </p>
       </div>
     </div>
@@ -125,7 +135,7 @@ function AvaliacaoReserva({ resultado, comparacao }) {
     </div>
     <p className="text-xs leading-5 text-slate-600">
       A simulação não exige metas cadastradas e não calcula juros nem rendimentos.
-      A reserva aumenta apenas se os aportes planejados forem realizados.
+      O valor projetado para a reserva depende de os aportes serem realizados; o sistema não confirma depósitos.
     </p>
   </div>;
 }
@@ -152,7 +162,7 @@ function AvaliacaoAporte({ resultado, comparacao, metaId }) {
     <p className="text-sm text-slate-700">
       {meta.concluidaNoPeriodo && meta.mesConclusaoReferencia
         ? "Conclusão estimada: " + formatarMesReferencia(meta.mesConclusaoReferencia) + ", se os aportes forem mantidos."
-        : "O objetivo não seria concluído dentro do período analisado, de acordo com os aportes previstos."}
+        : "Com os aportes previstos, a meta não seria concluída dentro do período analisado. O prazo é contado a partir de agora."}
     </p>
   </div>;
 }
