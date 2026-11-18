@@ -13,6 +13,9 @@ public class SimulacaoFinanceiraRequest {
     private BigDecimal reservaMensal;
     private BigDecimal aporteExtraMetasMensal;
     private Long metaPrioritariaId;
+    // Opcional: adapta aportes planejados à renda que sobra após despesas e reserva.
+    // Sem esse campo, mantém a projeção original para compatibilidade.
+    private boolean ajustarAportesAoOrcamento;
     private List<EventoSimulacaoRequest> eventos = new ArrayList<>();
 
     public String getNomeCenario() { return nomeCenario; }
@@ -35,6 +38,11 @@ public class SimulacaoFinanceiraRequest {
 
     public Long getMetaPrioritariaId() { return metaPrioritariaId; }
     public void setMetaPrioritariaId(Long metaPrioritariaId) { this.metaPrioritariaId = metaPrioritariaId; }
+
+    public boolean isAjustarAportesAoOrcamento() { return ajustarAportesAoOrcamento; }
+    public void setAjustarAportesAoOrcamento(boolean ajustarAportesAoOrcamento) {
+        this.ajustarAportesAoOrcamento = ajustarAportesAoOrcamento;
+    }
 
     public List<EventoSimulacaoRequest> getEventos() { return eventos; }
     public void setEventos(List<EventoSimulacaoRequest> eventos) {

@@ -1,4 +1,5 @@
 import { formatarMesReferencia, formatarMoeda } from "../utils/finance";
+import EvolucaoMetasRenda from "./EvolucaoMetasRenda";
 
 const n = (valor) => Number.isFinite(Number(valor)) ? Number(valor) : 0;
 const mesesDeficit = (meses) => (meses || []).filter((item) => n(item.margemMensal) < -0.005).length;
@@ -84,7 +85,7 @@ function AvaliacaoDespesa({ cenario, resultado, comparacao, valorInformado, mesE
   );
 }
 
-function AvaliacaoRenda({ resultado, comparacao }) {
+function AvaliacaoRenda({ resultado, comparacao, cenario, ajusteAportes }) {
   const mes = resultado.evolucaoMensal?.[0];
   const ref = comparacao?.evolucaoMensal?.[0];
   if (!mes) return <p>Não há dados para avaliar a alteração de renda.</p>;
@@ -109,9 +110,11 @@ function AvaliacaoRenda({ resultado, comparacao }) {
       Meses com orçamento negativo: <strong>{deficitBase} antes</strong> e <strong>{deficit} após a alteração</strong>.
     </p>}
     <p className="text-xs leading-5 text-slate-600">
-      O motor mantém inicialmente os mesmos aportes planejados para reserva e metas.
-      Uma queda de renda pode exigir ajustes para torná-los viáveis, mas não altera esses valores automaticamente.
+      {cenario === "reducao" && ajusteAportes
+        ? "Os aportes das metas foram limitados ao que sobra após despesas e reserva. Se a renda não cobrir nem esses compromissos, o cenário continuará com déficit."
+        : "Os aportes planejados continuam iguais, salvo se você decidir alterar quanto destina a uma meta. A renda, por si, não movimenta dinheiro."}
     </p>
+    <EvolucaoMetasRenda resultado={resultado} comparacao={comparacao} cenario={cenario} ajusteAportes={ajusteAportes} />
   </div>;
 }
 
@@ -140,7 +143,7 @@ function AvaliacaoReserva({ resultado, comparacao }) {
   </div>;
 }
 
-function AvaliacaoAporte({ resultado, comparacao, metaId }) {
+function AvaliacaoAporte({ resultado, comparacao, metaId, metaOriginal, aporteExtra }) {
   const meta = resultado.projecoesMetas?.find((item) => String(item.id) === String(metaId))
     || resultado.projecoesMetas?.[0];
   const anterior = comparacao?.projecoesMetas?.find((item) => String(item.id) === String(meta?.id));
@@ -154,6 +157,12 @@ function AvaliacaoAporte({ resultado, comparacao, metaId }) {
         : "A projeção mostra o valor previsto ao final do período, sem presumir rendimentos financeiros."}
       alerta={deficit > 0}
     />
+    {metaOriginal && (
+      <p data-testid="minimo-no-resultado" className="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+        Aporte mensal já previsto para cumprir o prazo: <strong>{formatarMoeda(Math.ceil(Math.max(0, n(metaOriginal.valorAlvo) - n(metaOriginal.valorInicial)) / Math.max(1, n(metaOriginal.prazoMeses)) * 100 - 0.0000001) / 100)}</strong>.
+        {" "}O adicional informado foi de <strong>{formatarMoeda(aporteExtra)}</strong> por mês, limitado ao valor restante da meta.
+      </p>
+    )}
     <div className="grid gap-3 sm:grid-cols-3">
       <Dado titulo="Valor previsto para a meta" valor={n(meta.valorProjetado)} destaque />
       <Dado titulo="Falta para atingir o objetivo" valor={Math.max(0, n(meta.valorAlvo) - n(meta.valorProjetado))} />
@@ -167,16 +176,16 @@ function AvaliacaoAporte({ resultado, comparacao, metaId }) {
   </div>;
 }
 
-export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId }) {
+export default function ResultadoPorDecisao({ cenario, resultado, comparacao, valorInformado, mesEvento, metaId, metaOriginal, aporteExtra, ajusteAportes = false }) {
   if (!resultado) return null;
   if (cenario === "compra" || cenario === "imprevisto") {
     return <AvaliacaoDespesa cenario={cenario} resultado={resultado} comparacao={comparacao}
       valorInformado={valorInformado} mesEvento={mesEvento} />;
   }
   if (cenario === "aumento" || cenario === "reducao") {
-    return <AvaliacaoRenda resultado={resultado} comparacao={comparacao} />;
+    return <AvaliacaoRenda resultado={resultado} comparacao={comparacao} cenario={cenario} ajusteAportes={ajusteAportes} />;
   }
   if (cenario === "guardar") return <AvaliacaoReserva resultado={resultado} comparacao={comparacao} />;
-  if (cenario === "aporte") return <AvaliacaoAporte resultado={resultado} comparacao={comparacao} metaId={metaId} />;
+  if (cenario === "aporte") return <AvaliacaoAporte resultado={resultado} comparacao={comparacao} metaId={metaId} metaOriginal={metaOriginal} aporteExtra={aporteExtra} />;
   return null;
 }

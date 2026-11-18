@@ -107,7 +107,16 @@ public class MotorSimulacaoService {
                 }
             }
 
-            BigDecimal aporteBaseMes = aplicarAportesBase(estadosMetas, indice, referencia);
+            BigDecimal rendaDoMes = rendaMensalAtual.add(rendaExtraordinariaMes);
+            // Só no modo solicitado: aportes de metas não excedem o disponível
+            // depois das despesas, imprevistos e reserva já planejada.
+            BigDecimal tetoAportes = request.isAjustarAportesAoOrcamento()
+                    ? rendaDoMes.subtract(gastosMensaisAtuais)
+                            .subtract(reservaMensal)
+                            .subtract(gastoExtraordinarioMes)
+                            .max(BigDecimal.ZERO)
+                    : null;
+            BigDecimal aporteBaseMes = aplicarAportesBase(estadosMetas, indice, referencia, tetoAportes);
             BigDecimal aporteEspecificoMes = aplicarAportesEspecificos(
                     aporteExtraPorMetaMensal,
                     estadosMetas,
@@ -123,7 +132,6 @@ public class MotorSimulacaoService {
             );
             BigDecimal aporteExtraMes = aporteEspecificoMes.add(aporteGlobalMes);
 
-            BigDecimal rendaDoMes = rendaMensalAtual.add(rendaExtraordinariaMes);
             BigDecimal margemMensal = rendaDoMes
                     .subtract(gastosMensaisAtuais)
                     .subtract(reservaMensal)
@@ -235,22 +243,31 @@ public class MotorSimulacaoService {
     }
 
     private BigDecimal aplicarAportesBase(List<EstadoMeta> estados,
-                                           int indiceMes,
-                                           YearMonth referencia) {
+                                          int indiceMes,
+                                          YearMonth referencia,
+                                          BigDecimal tetoMensal) {
         BigDecimal total = BigDecimal.ZERO;
+        List<EstadoMeta> ordenadas = estados;
+        if (tetoMensal != null) {
+            ordenadas = new ArrayList<>(estados);
+            ordenadas.sort(Comparator
+                    .comparingInt((EstadoMeta estado) -> pesoPrioridade(estado.meta.getPrioridade()))
+                    .reversed()
+                    .thenComparingLong(estado -> estado.meta.getId()));
+        }
 
-        for (EstadoMeta estado : estados) {
-            BigDecimal restante = restante(estado);
-            if (restante.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
+        for (EstadoMeta estado : ordenadas) {
+            BigDecimal falta = restante(estado);
+            if (falta.compareTo(BigDecimal.ZERO) <= 0) continue;
+            BigDecimal aporte = menor(estado.aporteBaseMensal, falta);
+            if (tetoMensal != null) {
+                aporte = menor(aporte, tetoMensal.subtract(total).max(BigDecimal.ZERO));
             }
-
-            BigDecimal aporte = menor(estado.aporteBaseMensal, restante);
+            if (aporte.signum() <= 0) continue;
             estado.valorProjetado = estado.valorProjetado.add(aporte);
             total = total.add(aporte);
             registrarConclusao(estado, indiceMes, referencia);
         }
-
         return total;
     }
 
@@ -299,7 +316,9 @@ public class MotorSimulacaoService {
             }
         }
 
-        if (restanteAporte.compareTo(BigDecimal.ZERO) <= 0) {
+        // Quando o usuário escolhe uma meta específica, o excedente não deve
+        // migrar silenciosamente para outra meta após a conclusão da escolhida.
+        if (metaPrioritariaId != null || restanteAporte.compareTo(BigDecimal.ZERO) <= 0) {
             return totalAplicado;
         }
 
@@ -468,6 +487,12 @@ public class MotorSimulacaoService {
         validarNaoNegativoOpcional(request.getGastosMensais(), "Os gastos mensais simulados não podem ser negativos.");
         validarNaoNegativoOpcional(request.getReservaMensal(), "O valor mensal para guardar não pode ser negativo.");
         validarNaoNegativoOpcional(request.getAporteExtraMetasMensal(), "O aporte extra para metas não pode ser negativo.");
+        if (request.isAjustarAportesAoOrcamento() &&
+                (valor(request.getAporteExtraMetasMensal()).signum() > 0
+                        || request.getEventos().stream()
+                                .anyMatch(e -> e != null && "ALTERAR_APORTE_META".equalsIgnoreCase(e.getTipo())))) {
+            throw new IllegalArgumentException("O ajuste dos aportes à renda não pode ser combinado com aportes extras nesta simulação.");
+        }
 
         if (request.getEventos().size() > MAX_EVENTOS) {
             throw new IllegalArgumentException("Uma simulação pode ter no máximo " + MAX_EVENTOS + " eventos.");
