@@ -69,7 +69,10 @@ function Insights() {
     setPergunta("");
     setEnviando(true);
     try {
-      const response = await api.post("/ia/perguntar", { pergunta: texto });
+      const response = await api.post("/ia/perguntar", {
+        pergunta: texto,
+        historico: anteriores.slice(-6),
+      });
       atualizarConversa([...mensagensAtuais.current, { tipo: "finia", texto: response.data.resposta }]);
     } catch (error) {
       setErro(error.response?.data?.mensagem || "Não foi possível falar com a FinIA agora. Tente novamente.");
@@ -148,8 +151,9 @@ function Insights() {
               <button type="submit" disabled={!statusIA?.configurada || enviando || !pergunta.trim()} className="finia-button-primary" aria-label="Enviar pergunta"><Icon name="arrow_upward" /></button>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              O histórico fica somente nesta aba do navegador, inclusive ao navegar entre páginas ou atualizar a tela.
-              Você pode apagá-lo a qualquer momento; ele não é salvo na conta do FinIA.
+              O histórico é temporário nesta aba, inclusive ao navegar ou atualizar. Para entender perguntas
+              de continuação, até seis mensagens anteriores são enviadas à IA junto da pergunta atual.
+              O FinIA não grava o histórico no banco. Você pode apagá-lo com “Limpar conversa”.
             </p>
           </form>
         </section>
